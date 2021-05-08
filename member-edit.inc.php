@@ -1,4 +1,11 @@
 <?php
+/**
+ * @author Drajat Hasan
+ * @email drajathasan20@gmail.com
+ * @create date 2021-05-08 09:16:04
+ * @modify date 2021-05-08 09:16:04
+ * @desc [description]
+ */
 // Attribute
 $attribute = (isset($meta['separateTable']) && (int)$meta['separateTable'] == 1) 
                 ? 

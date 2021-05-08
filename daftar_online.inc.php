@@ -1,4 +1,12 @@
 <?php
+/**
+ * @author Drajat Hasan
+ * @email drajathasan20@gmail.com
+ * @create date 2021-05-08 09:15:31
+ * @modify date 2021-05-08 09:15:31
+ * @desc [description]
+ */
+
 // set meta
 $meta = $sysconf['selfRegistration'];
 
