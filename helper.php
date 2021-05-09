@@ -19,7 +19,7 @@ function saveRegister()
     $table = (isset($meta['separateTable']) && (int)$meta['separateTable'] == 1) ? 'member_online': 'member';
 
     // load simbio dbop
-    require_once SB.'simbio2/simbio_DB/simbio_dbop.inc.php';
+    require_once SB.'simbio2'.DS.'simbio_DB'.DS.'simbio_dbop.inc.php';
 
     if (!\Volnix\CSRF\CSRF::validate($_POST)) {
         echo '<script type="text/javascript">';
@@ -147,7 +147,7 @@ function updateRegister()
         $table = (isset($meta['separateTable']) && (int)$meta['separateTable'] == 1) ? 'member_online': 'member';
 
         // load simbio dbop
-        require_once SB.'simbio2/simbio_DB/simbio_dbop.inc.php';
+        require_once SB.'simbio2'.DS.'simbio_DB'.DS.'simbio_dbop.inc.php';
 
         // initialise db operation
         $sql = new simbio_dbop($dbs);
@@ -251,7 +251,7 @@ function saveSetting($self)
     global $dbs;
 
     // load simbio dbop
-    require_once SB.'simbio2/simbio_DB/simbio_dbop.inc.php';
+    require_once SB.'simbio2'.DS.'simbio_DB'.DS.'simbio_dbop.inc.php';
 
     // action
     if (isset($_POST['saveData']))
@@ -316,7 +316,7 @@ function deleteItem($self)
         $table = (isset($meta['separateTable']) && (int)$meta['separateTable'] == 1) ? ['member_online', "id = '{id}'"] : ['member', "member_id = '{id}'"];
 
         // load simbio dbop
-        require_once SB.'simbio2/simbio_DB/simbio_dbop.inc.php';
+        require_once SB.'simbio2'.DS.'simbio_DB'.DS.'simbio_dbop.inc.php';
 
         // process delete
         // initialise db operation
@@ -352,10 +352,6 @@ function copyTemplate($data)
     if ((int)$data['selfRegistrationActive'] === 1 && !file_exists(SB.'lib'.DS.'contents'.DS.'daftar_online.inc.php'))
     {
         copy(__DIR__.DS.'daftar_online.inc.php', SB.'lib'.DS.'contents'.DS.'daftar_online.inc.php');
-    }
-    else if ((int)$data['selfRegistrationActive'] === 0 && file_exists(SB.'lib'.DS.'contents'.DS.'daftar_online.inc.php'))
-    {
-        unlink(SB.'lib'.DS.'contents'.DS.'daftar_online.inc.php');
     }
 }
 

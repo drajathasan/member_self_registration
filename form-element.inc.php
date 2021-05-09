@@ -7,6 +7,14 @@
  * @desc [description]
  */
 
+if ($_SESSION['uid'] > 1)
+{
+    echo '<div class="bg-danger p-2 text-white">';
+    echo 'Hanya akun super-admin yang dapat merubah bagian ini.';
+    echo '</div>';
+    exit;
+}
+
 // create new instance
 $form = new simbio_form_table_AJAX('mainForm', $_SERVER['PHP_SELF'] . '?' . $_SERVER['QUERY_STRING'], 'post');
 $form->submit_button_attr = 'name="saveData" value="' . __('Save') . '" class="s-btn btn btn-default"';
