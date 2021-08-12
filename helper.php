@@ -61,7 +61,7 @@ function saveRegister()
     foreach ($map as $key => $column_name) {
         if (isset($_POST[$key]))
         {
-            $data[$column_name] = str_replace(['"'], '', strip_tags($_POST[$key]));
+            $data[$column_name] = $dbs->escape_string(str_replace(['"'], '', strip_tags($_POST[$key])));
         }
     }
 
