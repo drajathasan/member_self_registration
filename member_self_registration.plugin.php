@@ -13,3 +13,4 @@ $plugin = \SLiMS\Plugins::getInstance();
 
 // registering menus
 $plugin->registerMenu('membership', 'Daftar Online', __DIR__ . '/index.php');
+$plugin->registerMenu('opac', 'Daftar Online', __DIR__ . '/daftar_online.inc.php');

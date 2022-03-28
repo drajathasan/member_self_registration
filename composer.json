@@ -1,0 +1,5 @@
+{
+    "require": {
+        "zein/storage": "dev-main"
+    }
+}

@@ -1,0 +1,23 @@
+{
+    "name": "zein/storage",
+    "description": "Library to manage storage",
+    "type": "library",
+    "require": {
+        "league/flysystem": "^2.0",
+        "league/mime-type-detection": "^1.9",
+        "ext-json": "*",
+        "php": "^7.4"
+    },
+    "license": "GPL-3.0",
+    "autoload": {
+        "psr-4": {
+            "Zein\\Storage\\": "src/Storage"
+        }
+    },
+    "authors": [
+        {
+            "name": "Drajat Hasan",
+            "email": "drajathasan20@gmail.com"
+        }
+    ]
+}

@@ -3,14 +3,14 @@
  * @author Drajat Hasan
  * @email drajathasan20@gmail.com
  * @create date 2021-05-08 09:15:31
- * @modify date 2021-05-08 09:15:31
+ * @modify date 2022-03-28 13:30:19
  * @desc [description]
- */
+ */ 
 
 // set meta
-$meta = $sysconf['selfRegistration'];
+$meta = $sysconf['selfRegistration']??[];
 
-if ((int)$meta['selfRegistrationActive'] === 1)
+if ((int)($meta['selfRegistrationActive']??0) === 1)
 {
 
     // set page title
@@ -20,6 +20,7 @@ if ((int)$meta['selfRegistrationActive'] === 1)
     $attr = [
         'action' => $_SERVER['PHP_SELF'] .'?p=daftar_online',
         'method' => 'POST',
+        'enctype' => 'multipart/form-data'
     ];
 
     // require helper
@@ -60,6 +61,17 @@ if ((int)$meta['selfRegistrationActive'] === 1)
         // Institution
         createFormContent(__('Institution'), 'text', 'memberInst', 'Isikan institusi anda');
 
+        // Member type
+        $list = [];
+        foreach (membershipApi::getMembershipType($dbs) as $id => $data) {
+            $list[] = [
+                'label' => $data['member_type_name'],
+                'value' => $id,
+            ];
+        }
+
+        createSelect(__('Member Type'), 'memberType', $list);
+
         // Jenis Kelamin
         createSelect(__('Sex'), 'memberSex', [['label' => __('Male'), 'value' => 1],['label' => __('Female'), 'value' => 0]]);
 
@@ -69,12 +81,35 @@ if ((int)$meta['selfRegistrationActive'] === 1)
         // Member Mail Address
         createFormContent(__('Phone Number'), 'text', 'memberPhone', 'Isikan Nomor Telepon/HP anda');
 
+        // Photo Profile
+        if (isset($meta['withImage']) && (bool)$meta['withImage'] === true)
+            createUploadArea('Foto Profil', 'photoprofil', 'Pilih file - <strong class="text-danger">Dilarang menggunakan foto selfie, gunakan foto rapih dan sopan.</strong>');
+
         // Member Mail Address
         createFormContent(__('E-mail'), 'text', 'memberEmail', 'Isikan email/surel anda');
 
         // Member Password
-        createFormContent('Password', 'password', 'memberPassword1', 'Isikan Password anda');
-        createFormContent('Tulis ulang password', 'password', 'memberPassword2', 'Isikan Password anda');
+        createPasswordShow([
+            'Password',
+            'Tulis ulang password'
+        ], ['memberPassword1', 'memberPassword2'], function(){
+            echo <<<HTML
+                <input type="checkbox" id="showPassword"/>  <label class="fa fa-eye"></label> Tampilkan Password
+                <script>
+                    document.querySelector('#showPassword').onclick = function () {
+                        if(document.querySelector('#showPassword').checked) {
+                            document.querySelectorAll('input[name="memberPassword1"], input[name="memberPassword2"]').forEach(el => {
+                                    el.setAttribute('type', 'text');
+                            })
+                        } else {
+                            document.querySelectorAll('input[name="memberPassword1"], input[name="memberPassword2"]').forEach(el => {
+                                el.setAttribute('type', 'password');
+                            })
+                        }
+                    }
+                </script>
+            HTML;
+        });
 
         // captcha
         if ((int)$meta['useRecaptcha'] === 1 && $sysconf['captcha']['member']['enable'])

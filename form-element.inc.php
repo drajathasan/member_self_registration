@@ -3,7 +3,7 @@
  * @author Drajat Hasan
  * @email drajathasan20@gmail.com
  * @create date 2021-05-08 09:15:43
- * @modify date 2021-05-08 09:15:43
+ * @modify date 2022-03-28 12:53:36
  * @desc [description]
  */
 
@@ -33,6 +33,9 @@ $form->addTextField('text', 'title', 'Judul Form' . '*', $meta['title'] ?? '', '
 // Auto Active?
 $form->addSelectList('autoActive', 'Keanggotaan Otomatis Aktif?', [['0','Tidak'],['1','Ya']], $meta['autoActive'] ?? '', 'class="select2"', 'Aktifkan atau tidak');
 
+// With Image?
+$form->addSelectList('withImage', 'Upload gambar?', [['0','Tidak'],['1','Ya']], $meta['withImage'] ?? '', 'class="select2 withImage"', 'Ya atau tidak');
+
 // Memisahkan antara anggota aktif dengan anggota online?
 $form->addSelectList('separateTable', 'Memisahkan tabel member aktif dan member online?', [['1','Ya'],['0','Tidak']], $meta['separateTable'] ?? '', 'class="select2"', 'Dengan memisahkan, setidaknya ketika member sudah terdaftar tidak otomatis bisa login dan dapat meminjam buku.');
 
@@ -47,3 +50,18 @@ $form->addTextField('textarea', 'regisInfo', 'Informasi dan Kontak terkait penda
 
 // print out the form object
 echo $form->printOut();
+?>
+<script>
+    $('.withImage').change((e) => {
+        let el = e.target;
+
+        if (el.value === '1' && confirm('Apakah anda yakin? Upload foto pada website online berisiko terjadinya kejahatan web phising. Pertimbangkan kembali!'))
+        {
+            return true;
+        }
+        else
+        {
+            el.value = '0';
+        }
+    })
+</script>

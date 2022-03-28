@@ -3,7 +3,7 @@
  * @author Drajat Hasan
  * @email drajathasan20@gmail.com
  * @create date 2021-05-08 09:16:04
- * @modify date 2021-05-08 09:16:04
+ * @modify date 2022-03-28 14:01:52
  * @desc [description]
  */
 // Attribute
@@ -71,6 +71,27 @@ $form->addTextField('textarea', 'memberAddress', __('Address'), $rec_d['member_a
 // member phone
 $form->addTextField('text', 'memberPhone', __('Phone Number'), $rec_d['member_phone']??'', 'class="form-control" style="width: 50%;"');
 
+// member type
+// get mtype data related to this record from database
+$mtypeid = (int)$rec_d['member_type_id'];
+$mtype_query = $dbs->query("SELECT member_type_id, member_type_name FROM mst_member_type WHERE member_type_id = '{$mtypeid}'");
+$mtype_options = array();
+$mtype_data = $mtype_query->fetch_row();
+
+$form->addAnything(__('Membership Type'), $mtype_data[1]);
+
+// Member image
+if (isset($sysconf['selfRegistration']) && isset($sysconf['selfRegistration']['withImage']) && (bool)$sysconf['selfRegistration']['withImage'] === true)
+{
+    if (!empty($rec_d['member_image']))
+    {
+        $Url = SWB . 'images/persons/' . $rec_d['member_image'];
+        $form->addAnything('Photo Profil', "
+            <img src=\"{$Url}\" style=\"width: 140px; height: 180px\"/>
+        ");
+    }
+}
+
 // member is_pending
 $form->addCheckBox('isPending', 'Aktifkan Member', array( array('1', __('Yes')) ), '');
 
@@ -84,7 +105,7 @@ if ((int)$meta['editableData'] === 0)
 {
 ?>
 <script>
-    document.querySelectorAll('input, textarea').forEach((elem,index) => {
+    document.querySelectorAll('input, textarea, select').forEach((elem,index) => {
         if (elem.getAttribute('name') !== 'memberID')
         {
             elem.readOnly = true;

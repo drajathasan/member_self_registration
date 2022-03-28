@@ -3,7 +3,7 @@
  * @author Drajat Hasan
  * @email drajathasan20@gmail.com
  * @create date 2019-11-01 05:42:50
- * @modify date 2021-05-08 05:26:16
+ * @modify date 2022-03-28 12:35:04
  * @desc [description]
  */
 
@@ -82,7 +82,7 @@ function createFormContent($_label, $_type, $_name, $_place_holder = '', $_is_re
   	echo '</div>';
 }
 
-function createUploadArea($_label, $_name, $_edit = false)
+function createUploadArea($_label, $_name, $labelUpload = 'Pilih File - besar file maksimal 1 MB', $_edit = false)
 {
 	$_required = ' require="true"';
 	if ($_edit) {
@@ -94,7 +94,7 @@ function createUploadArea($_label, $_name, $_edit = false)
 	echo '<div class="input-group">';
 	echo '<div class="custom-file">';
 	echo '<input type="file" class="custom-file-input" name="'.$_name.'" id="exampleInputFile" '.$_required.'>';
-	echo '<label class="custom-file-label" for="exampleInputFile">Pilih File - besar file maksimal 1 MB</label>';
+	echo '<label class="custom-file-label" for="exampleInputFile">' . $labelUpload . '</label>';
 	echo '</div>';
 	echo '</div>';
 	echo '</div>';
@@ -115,6 +115,14 @@ function createSelect($_label, $_name, $_option, $_attr = '', $_default_value = 
 	}
 	echo '</select>';
 	echo '</div>';
+}
+
+function createPasswordShow($_labels, $_names, $js = '')
+{
+	createFormContent($_labels[0],'password', $_names[0], 'Password');
+	createFormContent($_labels[1],'password', $_names[1], 'Re-type Password');
+
+	if (is_callable($js)) $js();
 }
 
 function createSelect2($_label, $_name, $_option, $_default_value = '', $_addtional_attr = '', $_addtional_class = '')

@@ -3,9 +3,13 @@
  * @author Drajat Hasan
  * @email drajathasan20@gmail.com
  * @create date 2021-05-08 09:15:53
- * @modify date 2021-05-08 09:15:53
+ * @modify date 2022-03-28 14:07:00
  * @desc [description]
  */
+
+use Zein\Storage\Local\Upload;
+
+require __DIR__ . '/vendor/autoload.php';
 
 // Save Register
 function saveRegister()
@@ -13,7 +17,7 @@ function saveRegister()
     global $dbs, $sysconf;
 
     // set meta
-    $meta = $sysconf['selfRegistration'];
+    $meta = $sysconf['selfRegistration']??[];
 
     // Set Table Attribute
     $table = (isset($meta['separateTable']) && (int)$meta['separateTable'] == 1) ? 'member_online': 'member';
@@ -54,7 +58,8 @@ function saveRegister()
             'memberName' => 'member_name', 'memberBirth' => 'birth_date', 
             'memberInst' => 'inst_name', 'memberSex' => 'gender',
             'memberAddress' => 'member_address', 'memberPhone' => 'member_phone',
-            'memberEmail' => 'member_email'
+            'memberEmail' => 'member_email',
+            'memberType' => 'member_type_id',
            ];
 
     $data = [];
@@ -104,6 +109,32 @@ function saveRegister()
         $data['member_id'] = substr(md5($data['member_name']), 0,20);
         $data['expire_date'] = date('Y-m-d', strtotime("+1 year"));
     }
+
+    // Upload
+    if (isset($meta['withImage']) && (bool)$meta['withImage'] === true)
+    {
+        $Upload = new Upload;
+        $Upload->mahasiswa = SB . 'images/';
+        $newFilename = hash('sha256', md5(date('this'))) . '.jpeg';
+
+        $Upload
+            ->streamFrom('photoprofil')
+            ->limitSize('1MB')
+            ->allowMime(['image/jpeg','image/png'])
+            ->allowExt(['.png','.jpg','.jpeg'])
+            ->storeToMahasiswa('persons')
+            ->as($newFilename);
+
+        if ($Upload->isSuccess())
+        {
+            $data['member_image'] = $newFilename;
+        }
+        else
+        {
+            utility::jsAlert('File tidak berhasil diunggah karena : ' . $Upload->getError());
+        }
+    }
+        
 
     // do insert
     // initialise db operation
@@ -203,6 +234,11 @@ function updateRegister()
                     }
                 }
                 
+                if (isset($meta['withImage']) && (bool)$meta['withImage'] === true)
+                {
+                    $data['member_image'] = $dataResult['member_image'];
+                }
+
                 $data['member_id'] = $memberId;
                 $data['mpasswd'] = (isset($dataResult['mpasswd'])) ? $dataResult['mpasswd'] : 'Tidak Ada Password';
                 $data['input_date'] = (isset($dataResult['input_date'])) ? $dataResult['input_date'] : date('Y-m-d');
@@ -257,7 +293,7 @@ function saveSetting($self)
     if (isset($_POST['saveData']))
     {
         // save into serialize data
-        $allowData = ['selfRegistrationActive','title','autoActive','separateTable','useRecaptcha','regisInfo','editableData'];
+        $allowData = ['selfRegistrationActive','title','autoActive','separateTable','useRecaptcha','regisInfo','editableData','withImage'];
 
         // loop for filter
         foreach ($_POST as $key => $value) {
@@ -272,7 +308,7 @@ function saveSetting($self)
         }
 
         // copy template
-        copyTemplate($_POST);
+        // copyTemplate($_POST);
         
         // serialize data
         $data = serialize($_POST);
@@ -288,10 +324,10 @@ function saveSetting($self)
 
         if ($insert)
         {
-            if ((int)$_POST['separateTable'] === 1 )
-            {
-                createTable();
-            }
+            // if ((int)$_POST['separateTable'] === 1 )
+            // {
+            //     createTable();
+            // }
 
             // set alert
             utility::jsToastr('Self Register Form', 'Berhasil menyimpan data', 'success');
