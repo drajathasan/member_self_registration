@@ -24,7 +24,7 @@ if ((int)($meta['selfRegistrationActive']??0) === 1)
     ];
 
     // require helper
-    require SB.'plugins'.DS.'member_self_registration'.DS.'helper.php';
+    require __DIR__ . DS . 'helper.php';
 
     if (isset($_POST['memberName']))
     {
