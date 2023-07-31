@@ -35,6 +35,7 @@ $meta = [];
 if (isset($sysconf['selfRegistration']))
 {
     $meta = $sysconf['selfRegistration'];
+    $meta = !is_array($meta) ? [] : $meta;
 }
 
 /* Action Area */
