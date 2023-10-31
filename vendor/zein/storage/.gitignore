@@ -1,4 +1,0 @@
-composer.lock
-test/*.php
-test/*/*
-vendor/

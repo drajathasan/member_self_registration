@@ -18,7 +18,6 @@ require SIMBIO . 'simbio_GUI/table/simbio_table.inc.php';
 require SIMBIO . 'simbio_GUI/form_maker/simbio_form_table_AJAX.inc.php';
 require SIMBIO . 'simbio_GUI/paging/simbio_paging.inc.php';
 require SIMBIO . 'simbio_DB/datagrid/simbio_dbgrid.inc.php';
-require __DIR__ . '/helper.php';
 // end dependency
 
 // privileges checking
@@ -30,23 +29,6 @@ if (!$can_read) {
 
 $page_title = 'Daftar Online';
 
-// set meta
-$meta = [];
-if (isset($sysconf['selfRegistration']))
-{
-    $meta = $sysconf['selfRegistration'];
-    $meta = !is_array($meta) ? [] : $meta;
-}
-
-/* Action Area */
-// save setting
-saveSetting(getCurrentUrl(['memberList' => 1]));
-
-updateRegister(getCurrentUrl(['memberList' => 1]));
-
-// delete item
-deleteItem(getCurrentUrl(['memberList' => 1]));
-/* End Action Area */
 ?>
 <div class="menuBox">
     <div class="menuBoxInner memberIcon">
@@ -55,57 +37,9 @@ deleteItem(getCurrentUrl(['memberList' => 1]));
         </div>
         <div class="sub_section">
             <div class="btn-group">
-                <a href="<?= getCurrentUrl(['memberList' => 1]) ?>" class="btn btn-primary">Daftar Anggota Online</a>
-                <a href="<?= getCurrentUrl(['formSetting' => 1]) ?>" class="btn btn-success">Pengaturan Form</a>
+                <a href="" class="btn btn-primary">Daftar Anggota Online</a>
+                <a href="" class="btn btn-success">Pengaturan Form</a>
             </div>
         </div>
     </div>
 </div>
-
-<?php
-
-if (!empty(dirCheckPermission()))
-{
-    die('<div class="errorBox">' . dirCheckPermission() . '</div>');
-}
-
-// set view
-switch (true) {
-    case (count($meta) === 0):
-        include __DIR__ . '/form-element.inc.php';
-        break;
-
-    case (isset($_GET['formSetting']) && count($meta) > 0):
-        include __DIR__ . '/form-element.inc.php';
-        break;
-
-    case (isset($_GET['memberList']) && count($meta) > 0):
-        include __DIR__ . '/member-grid.inc.php';
-        break;
-
-    case ((isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'detail')) && count($meta) > 0):
-        include __DIR__ . '/member-edit.inc.php';
-        break;
-
-    default:
-        include __DIR__ . '/member-grid.inc.php';
-        break;
-}
-?>
-<script>
-    // set edit link
-    let a = document.querySelectorAll('.editLink');
-
-    a.forEach((el,index) => {
-        var href = el.getAttribute('href').replace(/(\&memberList=1)/g, '');
-        a[index].setAttribute('href', href);
-    })
-
-    if (document.querySelector('.simbio_form_maker') !== null)
-    {
-        // set form to delete
-        let form = document.querySelector('.simbio_form_maker');
-
-        form.setAttribute('action', '<?= getCurrentUrl() ?>');
-    }
-</script>
