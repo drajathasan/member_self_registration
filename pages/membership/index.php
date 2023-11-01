@@ -28,7 +28,6 @@ if (!$can_read) {
 }
 
 $page_title = 'Daftar Online';
-
 ?>
 <div class="menuBox">
     <div class="menuBoxInner memberIcon">
@@ -36,10 +35,16 @@ $page_title = 'Daftar Online';
             <h2><?php echo $page_title; ?></h2>
         </div>
         <div class="sub_section">
-            <div class="btn-group">
+            <!-- <div class="btn-group">
                 <a href="" class="btn btn-primary">Daftar Anggota Online</a>
                 <a href="" class="btn btn-success">Pengaturan Form</a>
-            </div>
+            </div> -->
         </div>
     </div>
 </div>
+<?php
+if (!isset($_GET['section'])) {
+    include __DIR__ . DS . 'list.inc.php';
+} else if (file_exists($filepath = __DIR__ . DS . basename($_GET['section']) . '.inc.php')) {
+    include $filepath;
+}
