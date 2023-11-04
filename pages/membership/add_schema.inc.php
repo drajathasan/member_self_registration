@@ -1,5 +1,65 @@
 <?php
+use SLiMS\DB;
 use SLiMS\Table\Schema;
+use SLiMS\Table\Grammar\Mysql;
+
+if (isset($_POST['saveData'])) {
+    // Get MySQL Grammer reflection class
+    $mysqlGrammar = new ReflectionClass(new Mysql);
+
+    // Get private property without change it
+    $property = @array_pop($mysqlGrammar->getProperties(ReflectionProperty::IS_PRIVATE));
+
+    // Define some map to converting data
+    $mysqlColumnType = array_values($property->getValue());
+    $slimsSchemaColumnType = array_keys($property->getValue());
+
+    // Retrive all column detail in member table
+    $memberSchema = Schema::table('member')->columns($detail = true);
+    
+    // Statement
+    $insert = DB::getInstance()->prepare('insert into `self_registartion_schemas` set name = ?, info = ?, structure = ?');
+
+    $_POST['name'] = preg_replace('/[^A-Za-z\s]/', '', $_POST['name']);
+    $newTable = 'self_registration_' . strtolower(str_replace(' ', '_', $_POST['name']));
+    
+    dump($_POST, $memberSchema);
+
+    Schema::create($newTable, function($table) use($memberSchema,$mysqlColumnType,$slimsSchemaColumnType) {
+        foreach ($_POST['column'] as $column) {
+            $detail = @array_pop(array_filter($memberSchema, function($detail) use($column) {
+                if ($column['field'] === $detail['COLUMN_NAME']) return true;
+            }));
+
+            $dataType = $detail['DATA_TYPE']??$column['advfieldtype'];
+            $typeId = @array_pop(array_keys(array_filter($mysqlColumnType, fn($type) => $type === $dataType)));
+    
+            if ($column['field'] !== 'advance' && (empty($detail) || !isset($slimsSchemaColumnType[$typeId]))) {
+                unset($detail);
+                continue;
+            }
+
+            $blueprintMethod = $slimsSchemaColumnType[$typeId];
+
+            if ($column['field'] === 'advance' )
+            {
+                $table->{$blueprintMethod}($column['advfield'], $detail['CHARACTER_MAXIMUM_LENGTH']??64)->notNull();
+            } else 
+            {
+                $table->{$blueprintMethod}($column['field'], $detail['CHARACTER_MAXIMUM_LENGTH'])->notNull();
+            }
+
+            unset($detail);
+            unset($typeId);
+        }
+
+        $table->engine = 'MyISAM';
+        $table->charset = 'utf8';
+        $table->collation = 'utf8_unicode_ci';
+        dd($table);
+    });
+    exit;
+}
 
 $columns = implode('', array_merge(array_map(function($item) {
     return '<option value="' . $item . '">' . $item . '</option>';
@@ -7,10 +67,8 @@ $columns = implode('', array_merge(array_map(function($item) {
     if (!preg_match('/(expire|regis|since|notes|input|last_|is_)/', $column)) return true;
 }))), ['<option value="advance">Ruas Mahir</option>']));
 
-
-
 // create new instance
-$form = new simbio_form_table_AJAX('mainForm', pluginUrl(reset: true), 'post');
+$form = new simbio_form_table_AJAX('mainForm', pluginUrl(), 'post');
 $form->submit_button_attr = 'name="saveData" value="' . __('Save') . '" class="s-btn btn btn-default"';
 // form table attributes
 $form->table_attr = 'id="dataList" cellpadding="0" cellspacing="0"';
@@ -21,11 +79,14 @@ $form->addTextField('text', 'name', '<strong>Nama*</strong>', '', 'rows="1" clas
 
 $form->addAnything('<strong>Informasi</strong>', <<<HTML
 <div class="d-flex flex-column">
-    <label><strong>Nama Formulir</strong></label>
-    <input type="text" class="form-control col-3"/>
+    <label><strong>Judul Formulir</strong></label>
+    <input type="text" name="info[title]" class="form-control col-3"/>
     <label><strong>Lain-lain</strong></label>
     <p>Pemberitahuan mengenai prasayrat, informasi lanjutan pra/pasca pendaftaran</p>
-    <input type="text" class="form-control col-6"/>
+    <div id="editor" class="col-8">
+        <div id="toolbarContainer"></div>
+        <div id="contentDesc" class="rounded-lg px-3 noAutoFocus" style="background-color: white; min-height: 200px"></div>
+    </div>
 </div>
 HTML);
 $form->addAnything('<strong>Struktur</strong>', <<<HTML
@@ -35,11 +96,11 @@ $form->addAnything('<strong>Struktur</strong>', <<<HTML
     <hr>
     <div id="editableArea">
         <div class="d-flex flex-column col-12">
-            <label id="label-1"><strong>Ruas <b id="rowName1"></b></strong></label>
+            <label id="label-1"><strong>Ruas <b id="columnName1"></b></strong></label>
             <div class="d-flex flex-row">
-                <input type="text" class="form-control col-4 noAutoFocus" name="row[1]" placeholder="Label yang akan muncul di formulir"/>
-                <select class="form-control col-4 noAutoFocus" name="field[1]" data-row="1">
-                    <option value="">Pilih</option>
+                <input type="text" class="columnName form-control col-4 noAutoFocus" data-label="1" name="column[1][name]" placeholder="Label yang akan muncul di formulir"/>
+                <select class="form-control col-4 noAutoFocus" name="column[1][field]" data-row="1">
+                    <option value="">Pilih Kolom Database</option>
                     {$columns}
                 </select>
             </div>
@@ -48,8 +109,8 @@ $form->addAnything('<strong>Struktur</strong>', <<<HTML
                     <label><strong>Ruas Mahir</strong></label>
                 </div>
                 <div class="d-flex flex-row">
-                    <input type="text" class="form-control col-6 noAutoFocus" name="advrow[1]" placeholder="Nama kolom pada database"/>
-                    <select class="form-control col-4 noAutoFocus" name="advrowtype[1]">
+                    <input type="text" class="form-control col-6 noAutoFocus" name="column[1][advfield]" placeholder="Nama kolom pada database"/>
+                    <select class="form-control col-4 noAutoFocus" name="column[1][advfieldtype]">
                         <option value="">Pilih</option>
                         <option value="int">Angka</option>
                         <option value="varchar">Teks Singkat</option>
@@ -69,23 +130,23 @@ echo $form->printOut();
     let area = $('#editableArea')
     let addRow = $('.addRow')
     let template = `
-    <div id="detailrow{row}" class="d-flex flex-column col-12">
-        <label id="label-1"><strong>Ruas <b id="rowName{row}"></b></strong></label>
+    <div id="detailrow{column}" class="d-flex flex-column col-12">
+        <label id="label-1"><strong>Ruas <b id="columnName{column}"></b></strong></label>
         <div class="d-flex flex-row">
-            <input type="text" class="form-control col-4 noAutoFocus" name="row[{row}]" placeholder="Label yang akan muncul di formulir"/>
-            <select class="form-control col-4 noAutoFocus" name="field[{row}]" data-row="{row}">
-                <option value="">Pilih</option>
+            <input type="text" class="columnName form-control col-4 noAutoFocus" data-label="{column}" name="column[{column}][name]" placeholder="Label yang akan muncul di formulir"/>
+            <select class="form-control col-4 noAutoFocus" name="column[{column}][field]" data-row="{column}">
+                <option value="">Pilih Kolom Database</option>
                 <?= $columns ?>
             </select>
-            <button class="deleteRow notAJAX btn btn-danger" data-remove="{row}"><i class="fa fa-trash"></i></button>
+            <button class="deleteRow notAJAX btn btn-danger" data-remove="{column}"><i class="fa fa-trash"></i></button>
         </div>
-        <div id="advForm{row}" class="d-none flex-column my-3">
+        <div id="advForm{column}" class="d-none flex-column my-3">
             <div class="d-block">
                 <span><strong>Ruas Mahir</strong></span>
             </div>
             <div class="d-flex flex-row">
-                <input type="text" class="form-control col-6 noAutoFocus" name="advrow[{row}]" placeholder="Nama kolom pada database"/>
-                <select class="form-control col-4 noAutoFocus" name="advrowtype[{row}]">
+                <input type="text" class="form-control col-6 noAutoFocus" name="column[{column}][advfield]" placeholder="Nama kolom pada database"/>
+                <select class="form-control col-4 noAutoFocus" name="column[{column}][advfieldtype]">
                     <option value="">Pilih</option>
                     <option value="int">Angka</option>
                     <option value="varchar">Teks Singkat</option>
@@ -96,30 +157,60 @@ echo $form->printOut();
         </div>
     </div>`
 
-    addRow.click(function() {
+    addRow.click(function(e) {
+        e.preventDefault()
         let nextNumber = parseInt($(this).attr('row')) + 1
-        area.append(template.replace(/\{row\}/g, nextNumber))
+        area.append(template.replace(/\{column\}/g, nextNumber))
         $(this).attr('row', nextNumber)
     })
 
+    area.on('keyup', '.columnName', function(){
+        let labelRow = $(this).data('label')
+        $(`#columnName${labelRow}`).html($(this).val())
+    })
+
     area.on('change', 'select', function(){
-        let row = $(this).data('row')
+        let column = $(this).data('row')
 
         if ($(this).val() === 'advance') {
-            $(`#advForm${row}`).addClass('d-flex')
+            $(`#advForm${column}`).addClass('d-flex')
         } else {
-            $(`#advForm${row}`).removeClass('d-flex')
-            $(`input[name="advrow[${row}]"]`).val('')
-            $(`select[name="advrowtype[${row}]"]`).val('')
+            $(`#advForm${column}`).removeClass('d-flex')
+            $(`input[name="column[${column}][advfield]"]`).val('')
+            $(`select[name="column[${column}][advfieldtype]"]`).val('')
         }
     })
 
     area.on('click', '.deleteRow', function(){
-        let row = $(this).data('remove')
-        $(`#detailrow${row}`).remove()
+        let column = $(this).data('remove')
+        $(`#detailrow${column}`).remove()
     })
 
     area.on('click', 'input,select', function(e){
         e.preventDefault()
+    })
+
+    $(document).ready(function(){
+        let editorInstance = '';
+
+        DecoupledEditor
+            .create(document.querySelector('#contentDesc'),{  
+                toolbar: ['heading','bold','italic','link','numberedList','bulletedList']
+
+            })
+            .then( editor => {
+                const toolbarContainer = document.querySelector('#toolbarContainer');
+                toolbarContainer.appendChild( editor.ui.view.toolbar.element );
+                editorInstance = editor
+            })
+            .catch( error => {
+                console.log(error);
+            });
+
+        // when form submited retrive content
+        // and put into hidden textarea
+        $('#mainForm').submit(function(){
+            $(this).append('<textarea name="info[desc]" class="d-none">' + editorInstance.getData() + '</textarea>');
+        })
     })
 </script>
