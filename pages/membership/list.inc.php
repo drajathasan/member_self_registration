@@ -24,14 +24,20 @@ if ($schemas->rowCount() < 1) {
     HTML;
     while ($result = $schemas->fetchObject()) {
         $bgColor = substr(md5($result->name), 0,6);
-        $fnColor = bestTextColor($bgColor);
-
+        $fnColor = textColor($bgColor);
+        $info = json_decode($result->info);
+        $info->desc = strip_tags($info->desc, $sysconf['content']['allowable_tags']);
         echo <<<HTML
         <div class="card" style="width: 18rem;">
             <div class="card-img-top rounded-lg" style="background-color: #{$bgColor}; color: #{$fnColor}; height: 100px"></div>
             <div class="card-body">
                 <h5 class="card-title">{$result->name}</h5>
-                <p class="card-text">{$result->info}</p>
+                <p class="card-text d-flex flex-column">
+                    <label>Judul Form</label>
+                    {$info->title}
+                    <label>Deskripsi</label>
+                    {$info->desc}
+                </p>
             </div>
         </div>
         HTML;

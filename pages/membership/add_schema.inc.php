@@ -231,5 +231,15 @@ echo $form->printOut();
         $('#mainForm').submit(function(){
             $(this).append('<textarea name="info[desc]" class="d-none">' + editorInstance.getData() + '</textarea>');
         })
+
+        $('#dataList > tbody').prepend(`
+        <tr>
+            <td colspan="3">
+                <div class="alert alert-warning" role="alert">
+                    <h4 class="alert-heading">Peringatan</h4>
+                    <p>Skema yang sudah dibuat tidak dapat diubah. Pastikan semua telah terisi dengan benar.</p>
+                </div>
+            </td>
+        </tr>`) 
     })
 </script>

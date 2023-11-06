@@ -42,9 +42,9 @@ if (!function_exists('pluginUrl'))
     }
 }
 
-if (!function_exists('bestTextColor')) {
+if (!function_exists('textColor')) {
     // source : https://www.bitbook.io/php-function-to-calculate-the-best-font-color-for-a-background-color/
-    function bestTextColor($hexCode){
+    function textColor($hexCode){
         $redHex = substr($hexCode,0,2);
         $greenHex = substr($hexCode,2,2);
         $blueHex = substr($hexCode,4,2);
