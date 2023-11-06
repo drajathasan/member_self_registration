@@ -42,6 +42,27 @@ if (!function_exists('pluginUrl'))
     }
 }
 
+if (!function_exists('bestTextColor')) {
+    // source : https://www.bitbook.io/php-function-to-calculate-the-best-font-color-for-a-background-color/
+    function bestTextColor($hexCode){
+        $redHex = substr($hexCode,0,2);
+        $greenHex = substr($hexCode,2,2);
+        $blueHex = substr($hexCode,4,2);
+    
+        $r = (hexdec($redHex)) / 255;
+        $g = (hexdec($greenHex)) / 255;
+        $b = (hexdec($blueHex)) / 255;
+    
+        $brightness = (($r * 299) + ($g * 587) + ($b * 114)) / 1000;
+        // human eye sees 60% easier
+        if($brightness > .6){
+            return '000000';
+        }else{
+            return 'ffffff';
+        }
+    }
+}
+
 // get plugin instance
 $plugin = Plugins::getInstance();
 

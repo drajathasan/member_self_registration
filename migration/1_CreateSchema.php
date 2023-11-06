@@ -22,6 +22,7 @@ class CreateSchema extends Migration
             $table->text('structure')->notNull();
             $table->timestamps();
             $table->index('name');
+            $table->unique('name');
             $table->engine = 'MyISAM';
         });
     }

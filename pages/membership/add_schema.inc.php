@@ -18,36 +18,54 @@ if (isset($_POST['saveData'])) {
     $memberSchema = Schema::table('member')->columns($detail = true);
     
     // Statement
-    $insert = DB::getInstance()->prepare('insert into `self_registartion_schemas` set name = ?, info = ?, structure = ?');
+    $insert = DB::getInstance()->prepare('insert ignore into `self_registartion_schemas` set name = ?, info = ?, structure = ?');
 
     $_POST['name'] = preg_replace('/[^A-Za-z\s]/', '', $_POST['name']);
     $newTable = 'self_registration_' . strtolower(str_replace(' ', '_', $_POST['name']));
-    
-    dump($_POST, $memberSchema);
+
+    $insert->execute([$_POST['name'], json_encode($_POST['info']), json_encode($_POST['column'])]);
+
+    $indexes = [];
 
     Schema::create($newTable, function($table) use($memberSchema,$mysqlColumnType,$slimsSchemaColumnType) {
         foreach ($_POST['column'] as $column) {
+
+            // Search kolom in member schema
             $detail = @array_pop(array_filter($memberSchema, function($detail) use($column) {
                 if ($column['field'] === $detail['COLUMN_NAME']) return true;
             }));
 
+            // Determine data type based on member table or advance form
             $dataType = $detail['DATA_TYPE']??$column['advfieldtype'];
             $typeId = @array_pop(array_keys(array_filter($mysqlColumnType, fn($type) => $type === $dataType)));
     
+
             if ($column['field'] !== 'advance' && (empty($detail) || !isset($slimsSchemaColumnType[$typeId]))) {
                 unset($detail);
                 continue;
             }
 
-            $blueprintMethod = $slimsSchemaColumnType[$typeId];
+            $blueprintMethod = $slimsSchemaColumnType[$typeId]??$dataType;
 
-            if ($column['field'] === 'advance' )
-            {
-                $table->{$blueprintMethod}($column['advfield'], $detail['CHARACTER_MAXIMUM_LENGTH']??64)->notNull();
-            } else 
-            {
-                $table->{$blueprintMethod}($column['field'], $detail['CHARACTER_MAXIMUM_LENGTH'])->notNull();
+            $field = empty($column['advfield']) ? $column['field'] : $column['advfield'];
+
+            if ($blueprintMethod === 'enum') {
+                list($field, $data) = explode(',', $field);
+                $detail['CHARACTER_MAXIMUM_LENGTH'] = explode('|', trim($data));
             }
+
+            if (in_array($field, ['member_id', 'member_name'])) {
+                $table->index($field);
+                if ($field == 'member_id') $table->unique('member_id');
+            }
+
+            $params = ($blueprintMethod !== 'text' ? [
+                $field, ($detail['CHARACTER_MAXIMUM_LENGTH']??64)
+            ] : [
+                $field
+            ]);
+
+            $table->{$blueprintMethod}(...$params)->notNull();
 
             unset($detail);
             unset($typeId);
@@ -56,8 +74,9 @@ if (isset($_POST['saveData'])) {
         $table->engine = 'MyISAM';
         $table->charset = 'utf8';
         $table->collation = 'utf8_unicode_ci';
-        dd($table);
     });
+
+    redirect()->simbioAJAX(pluginUrl(reset: true));
     exit;
 }
 
