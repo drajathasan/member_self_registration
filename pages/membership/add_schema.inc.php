@@ -59,7 +59,7 @@ if (isset($_POST['saveData'])) {
                 if ($field == 'member_id') $table->unique('member_id');
             }
 
-            $params = ($blueprintMethod !== 'text' ? [
+            $params = (!in_array($blueprintMethod, ['text','date','datetime']) ? [
                 $field, ($detail['CHARACTER_MAXIMUM_LENGTH']??64)
             ] : [
                 $field
@@ -143,6 +143,7 @@ $form->addAnything('<strong>Struktur</strong>', <<<HTML
     <button row="1" class="addRow notAJAX btn btn-secondary btn-sm col-2 my-3">Tambah Selanjutnya</button>
 </div>
 HTML);
+
 echo $form->printOut();
 ?>
 <script>
