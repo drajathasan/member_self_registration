@@ -18,7 +18,7 @@ if (isset($_POST['saveData'])) {
     $memberSchema = Schema::table('member')->columns($detail = true);
     
     // Statement
-    $insert = DB::getInstance()->prepare('insert ignore into `self_registartion_schemas` set name = ?, info = ?, structure = ?');
+    $insert = DB::getInstance()->prepare('insert ignore into `self_registartion_schemas` set name = ?, info = ?, structure = ?, created_at = now()');
 
     $_POST['name'] = preg_replace('/[^A-Za-z\s]/', '', $_POST['name']);
     $newTable = 'self_registration_' . strtolower(str_replace(' ', '_', $_POST['name']));
@@ -47,7 +47,7 @@ if (isset($_POST['saveData'])) {
 
             $blueprintMethod = $slimsSchemaColumnType[$typeId]??$dataType;
 
-            $field = empty($column['advfield']) ? $column['field'] : $column['advfield'];
+            $field = trim(empty($column['advfield']) ? $column['field'] : $column['advfield']);
 
             if ($blueprintMethod === 'enum') {
                 list($field, $data) = explode(',', $field);
@@ -71,6 +71,7 @@ if (isset($_POST['saveData'])) {
             unset($typeId);
         }
 
+        $table->timestamps();
         $table->engine = 'MyISAM';
         $table->charset = 'utf8';
         $table->collation = 'utf8_unicode_ci';

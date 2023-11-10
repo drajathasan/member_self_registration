@@ -50,7 +50,7 @@ if (!function_exists('textColor')) {
 
 if (!function_exists('formGenerator'))
 {
-    function formGenerator($data)
+    function formGenerator($data, $record = [])
     {
         $structure = json_decode($data->structure, true);
         ob_start();
@@ -63,6 +63,8 @@ if (!function_exists('formGenerator'))
                 <label class="form-label"><strong>{$column['name']}</strong></label>
             HTML;
 
+            $defaultValue = $record[$column['field']]??$record[$column['advfield']]??'';
+    
             switch ($column['field']) {
                 case 'mpasswd':
                     echo <<<HTML
@@ -75,18 +77,20 @@ if (!function_exists('formGenerator'))
                     break;
 
                 case 'gender':
+                    $man = $defaultValue != 1 ?:'selected';
+                    $woman = $defaultValue != 0 ?:'selected';
                     echo <<<HTML
                     <select name="form[]" class="form-control">
                         <option>Pilih</option>
-                        <option value="1">Laki-Laki</option>
-                        <option value="0">Perempuan</option>
+                        <option value="1" {$man}>Laki-Laki</option>
+                        <option value="0" {$woman}>Perempuan</option>
                     </select>
                     HTML;
                     break;
 
                 case 'member_address':
                     echo <<<HTML
-                    <textarea name="form[]" placeholder="masukan {$column['name']} anda" class="form-control"></textarea>
+                    <textarea name="form[]" placeholder="masukan {$column['name']} anda" class="form-control">{$defaultValue}</textarea>
                     HTML;
                     break;
 
@@ -95,7 +99,7 @@ if (!function_exists('formGenerator'))
                     echo '<select class="form-control" name="form[]">';
                     echo '<option value="0">Pilih</option>';
                     while ($result = $memberType->fetch(PDO::FETCH_NUM)) {
-                        echo '<option value="' . $result[0] . '">' . $result[1] . '</option>';
+                        echo '<option value="' . $result[0] . '" ' . ($defaultValue != $result[0] ?:'selected') . '>' . $result[1] . '</option>';
                     }
                     echo '</select>';
                     break;
@@ -144,7 +148,7 @@ if (!function_exists('formGenerator'))
                     $types = ['birth_date' => 'date', 'member_email' => 'email'];
                     $type = isset($types[$column['field']]) ? $types[$column['field']] : 'text';
                     echo <<<HTML
-                    <input type="{$type}" name="form[]" placeholder="masukan {$column['name']} anda" class="form-control"/>
+                    <input type="{$type}" name="form[]" value="{$defaultValue}" placeholder="masukan {$column['name']} anda" class="form-control"/>
                     HTML;
                     break;
             }

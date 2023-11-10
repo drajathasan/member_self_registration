@@ -51,8 +51,12 @@ if (!isset($_GET['headless'])) {
         </div>
         <div class="sub_section <?= $schemas->rowCount() > 0 ? 'd-block' : 'd-none' ?>">
             <div class="btn-group">
-                <a href="<?= pluginUrl(['section' => 'add_schema']) ?>" class="btn btn-primary"><i class="fa fa-pencil"></i> Tambah Skema Baru</a>
-                <a href="<?= pluginUrl(['section' => 'add_schema']) ?>" class="btn btn-primary <?= $activeSchema->rowCount() ?:'d-none'?>"><i class="fa fa-pencil"></i> Tambah Skema Baru</a>
+                <?php if ($activeSchema->rowCount() < 1): ?>
+                    <a href="<?= pluginUrl(['section' => 'add_schema']) ?>" class="btn btn-outline-secondary" ><i class="fa fa-pencil"></i> Tambah Skema Baru</a>
+                <?php else: ?>
+                    <a href="<?= pluginUrl(reset: true) ?>" class="btn btn-primary"><i class="fa fa-list"></i> Daftar Anggota</a>
+                    <a href="<?= pluginUrl(['section' => 'form_config']) ?>" class="btn btn-outline-secondary"><i class="fa fa-cog"></i> Pengaturan Form</a>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -69,7 +73,8 @@ if (!isset($_GET['headless'])) {
 }
 
 if (!isset($_GET['section'])) {
-    include __DIR__ . DS . 'list.inc.php';
+    if ($activeSchema->rowCount() < 1) include __DIR__ . DS . 'list.inc.php';
+    else include __DIR__ . DS . 'active_list.inc.php';
 } else if (file_exists($filepath = __DIR__ . DS . basename($_GET['section']) . '.inc.php')) {
     include $filepath;
 }

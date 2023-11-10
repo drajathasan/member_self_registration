@@ -12,14 +12,18 @@ if ($schemas->rowCount() < 1) {
 <?php
 } else {
     $addUrl = pluginUrl(['section' => 'add_schema']);
-    echo '<div id="schemas" class="my-5 mx-3 d-flex flex-wrap">';
+    $iterateAt = 0;
+    $checked = '';
+    $activeId = $activeSchema->rowCount() ? $activeSchema->fetchObject()->id : 0;
+
+    echo '<div id="schemas" class="my-5 mx-3 d-flex flex-wrap" schema-active="' . $activeId . '">';
     while ($result = $schemas->fetchObject()) {
+        $iterateAt++;
         $bgColor = substr(md5($result->name), 0,6);
         $fnColor = textColor($bgColor);
         $info = json_decode($result->info);
         $info->desc = substr(strip_tags($info->desc), 0,100);
 
-        $checked = '';
         if ($result->status == 1) $checked = 'checked';
 
         $result->status = $result->status == 0 ? 'Aktifkan' : 'Non-Aktifkan';
@@ -37,7 +41,7 @@ if ($schemas->rowCount() < 1) {
                 </p>
                 <div class="d-flex flex-row justify-content-between">
                     <div class="custom-control custom-switch">
-                        <input onchange="enable({$result->id})" type="checkbox" class="custom-control-input" data-uid="{$result->id}" id="checkbox{$result->id}" {$checked}>
+                        <input type="checkbox" class="custom-control-input checkbox" data-uid="{$result->id}" id="checkbox{$result->id}" {$checked}>
                         <label class="custom-control-label" for="checkbox{$result->id}">{$result->status}</label>
                     </div>
                     <a href="{$previewUrl}" class="btn btn-outline-primary notAJAX openPopUp" height="500px" title="Pratinjau">Pratinjau Formulir</a>
@@ -45,29 +49,30 @@ if ($schemas->rowCount() < 1) {
             </div>
         </div>
         HTML;
+        $checked = '';
     }
     echo '</div>';
     $actionUrl = pluginUrl(reset: true);
     $url = pluginUrl();
     echo <<<HTML
     <script>
-        function enable(id)
-        {
-            let el = '';
-            $('#schemas').find('input[type="checkbox"]').each(function() {
-                if(id != $(this).data('uid') && this.checked) {
-                    $(this).trigger('click')
-                } else if (id == $(this).data('uid')) {
-                    $(this).trigger('click')
-                }
-            })
+        $('input[type="checkbox"]').change(function(){
+            let activeSchema = $('#schemas').attr('schema-active')
+            
+            if (activeSchema != 0 && activeSchema != $(this).data('uid')) {
+                console.log(activeSchema)
+                $(`#checkbox\${activeSchema}`).trigger('click')
+            }
 
-            setTimeout(() => {
-                $.post('{$actionUrl}', {schema_id:id}, function() {    
-                        $('#mainContent').simbioAJAX('{$url}') 
-                })
-            }, 3500);
-        }
+            let uid = $(this).data('uid')
+            if (this.checked === false) uid = 0
+
+            $.post('{$actionUrl}', {schema_id:uid}, function(){
+                setTimeout(() => {
+                    $('#mainContent').simbioAJAX('{$url}')
+                }, 1000);
+            })
+        })
     </script>
     HTML;
 }
