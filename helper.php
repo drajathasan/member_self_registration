@@ -16,8 +16,7 @@ if (!function_exists('pluginUrl'))
         // override current value
         foreach($data as $key => $val) {
             if (isset($_GET[$key])) {
-                $_GET[$key] = $val;
-                unset($data[$key]);
+                unset($_GET[$key]);
             }
         }
 
@@ -134,7 +133,7 @@ if (!function_exists('formGenerator'))
                     break;
 
                 case 'member_image':
-                    if ($data->option === null) {
+                    if ($data?->option??null === null) {
                         echo '<div class="alert alert-info font-weight-bold">Anda belum mengantur ruas ini pada "Pengaturan Form"</div>';
                     } else {
                         echo <<<HTML

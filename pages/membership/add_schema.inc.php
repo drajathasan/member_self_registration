@@ -18,7 +18,7 @@ if (isset($_POST['saveData'])) {
     $memberSchema = Schema::table('member')->columns($detail = true);
     
     // Statement
-    $insert = DB::getInstance()->prepare('insert ignore into `self_registartion_schemas` set name = ?, info = ?, structure = ?, created_at = now()');
+    $insert = DB::getInstance()->prepare('insert ignore into `self_registration_schemas` set name = ?, info = ?, structure = ?, created_at = now()');
 
     $_POST['name'] = preg_replace('/[^A-Za-z\s]/', '', $_POST['name']);
     $newTable = 'self_registration_' . strtolower(str_replace(' ', '_', $_POST['name']));
@@ -88,7 +88,7 @@ $columns = implode('', array_merge(array_map(function($item) {
 }))), ['<option value="advance">Ruas Mahir</option>']));
 
 // create new instance
-$form = new simbio_form_table_AJAX('mainForm', pluginUrl(), 'post');
+$form = new simbio_form_table_AJAX('mainForm', pluginUrl(['section' => 'add_schema']), 'post');
 $form->submit_button_attr = 'name="saveData" value="' . __('Save') . '" class="s-btn btn btn-default"';
 // form table attributes
 $form->table_attr = 'id="dataList" cellpadding="0" cellspacing="0"';

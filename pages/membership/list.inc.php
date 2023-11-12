@@ -11,6 +11,7 @@ if ($schemas->rowCount() < 1) {
     </div>
 <?php
 } else {
+
     $addUrl = pluginUrl(['section' => 'add_schema']);
     $iterateAt = 0;
     $checked = '';
@@ -28,6 +29,7 @@ if ($schemas->rowCount() < 1) {
 
         $result->status = $result->status == 0 ? 'Aktifkan' : 'Non-Aktifkan';
         $previewUrl = pluginUrl(['headless' => 'yes', 'schema_id' => $result->id, 'section' => 'form_preview']);
+        $deleteUrl = pluginUrl(['headless' => 'yes', 'section' => 'list']);
         echo <<<HTML
         <div class="card col-4">
             <div class="card-img-top rounded-lg" style="background-color: #{$bgColor}; color: #{$fnColor}; height: 20px"></div>
@@ -39,12 +41,15 @@ if ($schemas->rowCount() < 1) {
                     <label><strong>Deskripsi</strong></label>
                     {$info->desc}
                 </p>
-                <div class="d-flex flex-row justify-content-between">
+                <div class="d-flex flex-row justify-content-between align-items-center">
                     <div class="custom-control custom-switch">
                         <input type="checkbox" class="custom-control-input checkbox" data-uid="{$result->id}" id="checkbox{$result->id}" {$checked}>
                         <label class="custom-control-label" for="checkbox{$result->id}">{$result->status}</label>
                     </div>
-                    <a href="{$previewUrl}" class="btn btn-outline-primary notAJAX openPopUp" height="500px" title="Pratinjau">Pratinjau Formulir</a>
+                    <div>
+                        <a href="{$deleteUrl}" data-uid="{$result->id}" class="schemaDelete btn btn-outline-danger">Hapus</a>
+                        <a href="{$previewUrl}" class="btn btn-outline-primary notAJAX openPopUp" height="500px" title="Pratinjau">Pratinjau Formulir</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -67,10 +72,23 @@ if ($schemas->rowCount() < 1) {
             let uid = $(this).data('uid')
             if (this.checked === false) uid = 0
 
-            $.post('{$actionUrl}', {schema_id:uid}, function(){
+            $.post('{$actionUrl}', {schema_id:uid, action: 'activate'}, function(){
                 setTimeout(() => {
                     $('#mainContent').simbioAJAX('{$url}')
                 }, 1000);
+            })
+        })
+
+        $('.schemaDelete').click(function(e) {
+            e.preventDefault()
+            let ask = confirm('Menghapus skema juga akan menghapus data pendaftaran yang sudah ada. Apakah anda yakin?')
+
+            if (!ask) {
+                return
+            }
+
+            $.post('{$actionUrl}', {schema_id: $(this).data('uid'), action: 'delete'}, function() {
+                $('#mainContent').simbioAJAX('{$url}')
             })
         })
     </script>

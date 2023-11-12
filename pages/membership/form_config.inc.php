@@ -16,7 +16,15 @@ $form->table_attr = 'id="dataList" cellpadding="0" cellspacing="0"';
 $form->table_header_attr = 'class="alterCell"';
 $form->table_content_attr = 'class="alterCell2"';
 
-$form->addHidden('schema_id', $data->id);
+$form->addHidden('schema_id', $data?->id??'');
+
+$list = [];
+$list[] = [0, 'Pilih'];
+while ($schemaData = $schemas->fetchObject()) {
+    $list[] = [$schemaData->id, $schemaData->name];
+}
+
+$form->addSelectList('default_schema', '<strong>Skema Utama?</strong>', $list, $data?->id??'', 'rows="1" class="form-control col-2"');
 $form->addSelectList('image', '<strong>Unggah Foto Profil?</strong>', [[0, __('Disable')],[1, __('Enable')]], $option?->image??'', 'rows="1" class="form-control col-2"');
 $form->addSelectList('captcha', '<strong>Menggunakan Re-Captcha?</strong>', [[0, __('Disable')],[1, __('Enable')]], $option?->captcha??'', 'rows="1" class="form-control col-2"');
 

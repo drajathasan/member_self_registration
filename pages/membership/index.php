@@ -5,6 +5,7 @@
  * @File name           : index.php
  */
 use SLiMS\DB;
+use SLiMS\Table\Schema;
 
 defined('INDEX_AUTH') OR die('Direct access not allowed!');
 
@@ -28,17 +29,26 @@ if (!$can_read) {
     die('<div class="errorBox">' . __('You are not authorized to view this section') . '</div>');
 }
 
-if (isset($_POST['schema_id'])) {
-    $db = DB::getInstance();
-    $db->query('update self_registartion_schemas set status = 0');
-    $db->prepare('update self_registartion_schemas set status = 1 where id = ?')->execute([$_POST['schema_id']]);
+$section = $_GET['section']??null;
+$schemas = DB::getInstance()->query('select * from self_registration_schemas');
+$schemaById = DB::getInstance()->prepare('select * from self_registration_schemas where id = ?');
+$activeSchema = DB::getInstance()->query('select * from self_registration_schemas where status = 1');
+
+if (isset($_POST['schema_id']) && isset($_POST['action']) && $_POST['action'] == 'delete') {
+    $schemaById->execute([$_POST['schema_id']]);
+    $detail = $schemaById->fetchObject();
+
+    DB::getInstance()->prepare('delete from self_registration_schemas where id = ?')->execute([$_POST['schema_id']]);
+    Schema::drop('self_registration_' . trim(str_replace(' ', '_', strtolower($detail->name))));
     exit;
 }
 
-
-$schemas = DB::getInstance()->query('select * from self_registartion_schemas');
-$schemaById = DB::getInstance()->prepare('select * from self_registartion_schemas where id = ?');
-$activeSchema = DB::getInstance()->query('select * from self_registartion_schemas where status = 1');
+if (isset($_POST['schema_id']) && isset($_POST['action']) && $_POST['action'] == 'activate') {
+    $db = DB::getInstance();
+    $db->query('update self_registration_schemas set status = 0');
+    $db->prepare('update self_registration_schemas set status = 1 where id = ?')->execute([$_POST['schema_id']]);
+    exit;
+}
 
 $page_title = 'Daftar Online';
 
@@ -52,10 +62,15 @@ if (!isset($_GET['headless'])) {
         <div class="sub_section <?= $schemas->rowCount() > 0 ? 'd-block' : 'd-none' ?>">
             <div class="btn-group">
                 <?php if ($activeSchema->rowCount() < 1): ?>
-                    <a href="<?= pluginUrl(['section' => 'add_schema']) ?>" class="btn btn-outline-secondary" ><i class="fa fa-pencil"></i> Tambah Skema Baru</a>
+                    <a href="<?= pluginUrl(['section' => 'add_schema']) ?>" class="btn btn-outline-secondary" ><i class="fa fa-plus"></i> Tambah Skema Baru</a>
                 <?php else: ?>
                     <a href="<?= pluginUrl(reset: true) ?>" class="btn btn-primary"><i class="fa fa-list"></i> Daftar Anggota</a>
                     <a href="<?= pluginUrl(['section' => 'form_config']) ?>" class="btn btn-outline-secondary"><i class="fa fa-cog"></i> Pengaturan Form</a>
+                    <?php if ($section !== 'list'): ?>
+                    <a href="<?= pluginUrl(['section' => 'list']) ?>" class="btn btn-outline-secondary"><i class="fa fa-list"></i> Daftar Skema</a>
+                    <?php elseif ($section === 'list'): ?>
+                    <a href="<?= pluginUrl(['section' => 'add_schema']) ?>" class="btn btn-outline-secondary" ><i class="fa fa-plus"></i> Tambah Skema Baru</a>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -72,9 +87,9 @@ if (!isset($_GET['headless'])) {
 <?php
 }
 
-if (!isset($_GET['section'])) {
+if (!$section) {
     if ($activeSchema->rowCount() < 1) include __DIR__ . DS . 'list.inc.php';
     else include __DIR__ . DS . 'active_list.inc.php';
-} else if (file_exists($filepath = __DIR__ . DS . basename($_GET['section']) . '.inc.php')) {
+} else if (file_exists($filepath = __DIR__ . DS . basename($section) . '.inc.php')) {
     include $filepath;
 }
