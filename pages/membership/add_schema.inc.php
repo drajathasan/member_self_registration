@@ -28,6 +28,7 @@ if (isset($_POST['saveData'])) {
     $indexes = [];
 
     Schema::create($newTable, function($table) use($memberSchema,$mysqlColumnType,$slimsSchemaColumnType) {
+
         foreach ($_POST['column'] as $column) {
 
             // Search kolom in member schema
@@ -76,6 +77,42 @@ if (isset($_POST['saveData'])) {
         $table->charset = 'utf8';
         $table->collation = 'utf8_unicode_ci';
     });
+
+    Schema::table('member_custom', function($table) use($memberSchema,$mysqlColumnType,$slimsSchemaColumnType) {
+        foreach ($_POST['column'] as $column) {
+            if ($column['field'] !== 'advance') continue;
+
+            // Search kolom in member schema
+            $detail = @array_pop(array_filter($memberSchema, function($detail) use($column) {
+                if ($column['field'] === $detail['COLUMN_NAME']) return true;
+            }));
+
+            // Determine data type based on member table or advance form
+            $dataType = $detail['DATA_TYPE']??$column['advfieldtype'];
+            $typeId = @array_pop(array_keys(array_filter($mysqlColumnType, fn($type) => $type === $dataType)));
+
+            $blueprintMethod = $slimsSchemaColumnType[$typeId]??$dataType;
+
+            $field = $column['advfield'];
+
+            if ($blueprintMethod === 'enum') {
+                list($field, $data) = explode(',', $field);
+                $detail['CHARACTER_MAXIMUM_LENGTH'] = explode('|', trim($data));
+            }
+
+            $params = (!in_array($blueprintMethod, ['text','date','datetime']) ? [
+                $field, ($detail['CHARACTER_MAXIMUM_LENGTH']??64)
+            ] : [
+                $field
+            ]);
+
+            $table->{$blueprintMethod}(...$params)->nullable()->add();
+
+            unset($detail);
+            unset($typeId);
+        }
+    });
+
 
     redirect()->simbioAJAX(pluginUrl(reset: true));
     exit;

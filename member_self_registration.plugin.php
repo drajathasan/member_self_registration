@@ -8,8 +8,10 @@
  * Author URI: Drajat Hasan
  */
 
+use SLiMS\DB;
 use SLiMS\Plugins;
 use SLiMS\Url;
+use SLiMS\Table\Schema;
 
 define('MSLR', __DIR__);
 define('MSWB', (string)Url::getSlimsBaseUri('plugins/' . basename(MSLR) . '/'));
@@ -22,3 +24,12 @@ $plugin = Plugins::getInstance();
 
 // registering menus
 $plugin->registerMenu('membership', 'Daftar Online', __DIR__ . '/pages/membership/index.php');
+
+if (Schema::hasTable($table = 'self_registration_schemas')) {
+    $activeSchema = DB::getInstance()->query('select id,name from ' . $table . ' where status =  1');
+
+    if ($activeSchema->rowCount()) {
+        $data = $activeSchema->fetchObject();
+        $plugin->registerMenu('opac', $data->name, __DIR__ . DS . 'pages' . DS . 'opac' . DS . 'index.php');
+    }
+}

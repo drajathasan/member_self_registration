@@ -29,26 +29,63 @@ if (!$can_read) {
     die('<div class="errorBox">' . __('You are not authorized to view this section') . '</div>');
 }
 
+// Define section
 $section = $_GET['section']??null;
+
+// setup queries
 $schemas = DB::getInstance()->query('select * from self_registration_schemas');
 $schemaById = DB::getInstance()->prepare('select * from self_registration_schemas where id = ?');
 $activeSchema = DB::getInstance()->query('select * from self_registration_schemas where status = 1');
 
-if (isset($_POST['schema_id']) && isset($_POST['action']) && $_POST['action'] == 'delete') {
-    $schemaById->execute([$_POST['schema_id']]);
-    $detail = $schemaById->fetchObject();
+/*---- Http Request Process ----*/
 
-    DB::getInstance()->prepare('delete from self_registration_schemas where id = ?')->execute([$_POST['schema_id']]);
-    Schema::drop('self_registration_' . trim(str_replace(' ', '_', strtolower($detail->name))));
+if (isset($_POST['form_config'])) {
+    // Fetch active schema
+    $update = DB::getInstance()->prepare('update self_registration_schemas set option = ? where id = ?');
+    $update->execute([json_encode($_POST['form_config']), $_POST['schema_id']]);
+    
+    toastr('Data berhasil disimpan')->success();
+    redirect()->simbioAJAX(pluginUrl(reset: true));
     exit;
 }
 
+// Schema modification process
+if (isset($_POST['schema_id']) && isset($_POST['action']) && $_POST['action'] == 'delete') {
+    // Fetch active schema
+    $schemaById->execute([$_POST['schema_id']]);
+    $detail = $schemaById->fetchObject();
+
+    // Delete schema data
+    DB::getInstance()->prepare('delete from self_registration_schemas where id = ?')->execute([$_POST['schema_id']]);
+    Schema::drop('self_registration_' . trim(str_replace(' ', '_', strtolower($detail->name))));
+
+    // filtering only for advance field only
+    $advanceOnly = array_filter(json_decode($detail->structure, TRUE), function($column){
+        return $column['field'] === 'advance';
+    });
+
+    // Set only column name
+    $fieldsToDrop = array_map(function($data) {
+        if (preg_match('/\|/', $data['advfield'])) {
+            $data['advfield'] = explode(',', $data['advfield'])[0];
+        }
+        return $data['advfield'];
+    }, $advanceOnly);
+
+    // Drop column from member custom
+    foreach($fieldsToDrop as $column) Schema::dropColumn('member_custom', $column);
+    exit;
+}
+
+// Activate schema data
 if (isset($_POST['schema_id']) && isset($_POST['action']) && $_POST['action'] == 'activate') {
     $db = DB::getInstance();
     $db->query('update self_registration_schemas set status = 0');
     $db->prepare('update self_registration_schemas set status = 1 where id = ?')->execute([$_POST['schema_id']]);
     exit;
 }
+
+/*---- End of Http Request Process ----*/
 
 $page_title = 'Daftar Online';
 
@@ -64,7 +101,12 @@ if (!isset($_GET['headless'])) {
                 <?php if ($activeSchema->rowCount() < 1): ?>
                     <a href="<?= pluginUrl(['section' => 'add_schema']) ?>" class="btn btn-outline-secondary" ><i class="fa fa-plus"></i> Tambah Skema Baru</a>
                 <?php else: ?>
+                    <?php
+                    $activeSchemaData = getActiveSchemaData();
+                    $path = trim(strtolower(str_replace(' ', '_', $activeSchemaData->name)));
+                    ?>
                     <a href="<?= pluginUrl(reset: true) ?>" class="btn btn-primary"><i class="fa fa-list"></i> Daftar Anggota</a>
+                    <a target="_blank" href="<?= SWB . '?p=' . $path ?>" class="notAJAX btn btn-success"><i class="fa fa-link"></i> Buka Form di OPAC</a>
                     <a href="<?= pluginUrl(['section' => 'form_config']) ?>" class="btn btn-outline-secondary"><i class="fa fa-cog"></i> Pengaturan Form</a>
                     <?php if ($section !== 'list'): ?>
                     <a href="<?= pluginUrl(['section' => 'list']) ?>" class="btn btn-outline-secondary"><i class="fa fa-list"></i> Daftar Skema</a>
@@ -87,6 +129,7 @@ if (!isset($_GET['headless'])) {
 <?php
 }
 
+// Routing page
 if (!$section) {
     if ($activeSchema->rowCount() < 1) include __DIR__ . DS . 'list.inc.php';
     else include __DIR__ . DS . 'active_list.inc.php';
