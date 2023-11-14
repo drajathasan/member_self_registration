@@ -1,4 +1,5 @@
 <?php
+use SLiMS\Captcha\Factory as Captcha;
 
 if (!function_exists('getActiveSchemaData'))
 {
@@ -66,6 +67,11 @@ if (!function_exists('formGenerator'))
 
         echo '<form method="POST" action="' . $actionUrl . '" ' . $withUpload . '>';
 
+        if ($key = flash()->includes('self_regis_error'))
+        {
+            flash()->danger($key);
+        }
+
         if ($actionUrl === '') {
             echo '<h3>Pratinjau</h3>';
             echo '<h5>Skema ' . $data->name . '</h5>';
@@ -87,9 +93,9 @@ if (!function_exists('formGenerator'))
                     echo <<<HTML
                     <br>
                     <small>tulis dibawah berikut</small>
-                    <input type="password" placeholder="masukan {$column['name']} anda" name="form[]" id="pass1" class="form-control">
+                    <input type="password" placeholder="masukan {$column['name']} anda" name="form[{$key}]" id="pass1" class="form-control">
                     <small>konfirmasi ulang password anda</small>
-                    <input type="password" name="confirm_password" placeholder="masukan ulang {$column['name']} anda" id="pass2" class="form-control" required>
+                    <input type="password" name="confirm_password" placeholder="masukan ulang {$column['name']} anda" id="pass2" class="form-control">
                     HTML;
                     break;
 
@@ -97,7 +103,7 @@ if (!function_exists('formGenerator'))
                     $man = $defaultValue != 1 ?:'selected';
                     $woman = $defaultValue != 0 ?:'selected';
                     echo <<<HTML
-                    <select name="form[]" class="form-control" required>
+                    <select name="form[{$key}]" class="form-control">
                         <option>Pilih</option>
                         <option value="1" {$man}>Laki-Laki</option>
                         <option value="0" {$woman}>Perempuan</option>
@@ -107,13 +113,13 @@ if (!function_exists('formGenerator'))
 
                 case 'member_address':
                     echo <<<HTML
-                    <textarea name="form[]" placeholder="masukan {$column['name']} anda" class="form-control" required>{$defaultValue}</textarea>
+                    <textarea name="form[{$key}]" placeholder="masukan {$column['name']} anda" class="form-control">{$defaultValue}</textarea>
                     HTML;
                     break;
 
                 case 'member_type_id':
                     $memberType = \SLiMS\DB::getInstance()->query('select member_type_id, member_type_name from mst_member_type');
-                    echo '<select class="form-control" name="form[]" required>';
+                    echo '<select class="form-control" name="form[' . $key . ']">';
                     echo '<option value="0">Pilih</option>';
                     while ($result = $memberType->fetch(PDO::FETCH_NUM)) {
                         echo '<option value="' . $result[0] . '" ' . ($defaultValue != $result[0] ?:'selected') . '>' . $result[1] . '</option>';
@@ -128,19 +134,19 @@ if (!function_exists('formGenerator'))
                             $types = ['varchar' => 'text', 'int' => 'number'];
                             $type = $types[$column['advfieldtype']];
                             echo <<<HTML
-                            <input type="{$type}" name="form[]" placeholder="masukan {$column['name']} anda" class="form-control" required/>
+                            <input type="{$type}" name="form[{$key}]" placeholder="masukan {$column['name']} anda" class="form-control"/>
                             HTML;
                             break;
 
                         case 'text':
                             echo <<<HTML
-                            <textarea name="form[]" placeholder="masukan {$column['name']} anda" class="form-control" required></textarea>
+                            <textarea name="form[{$key}]" placeholder="masukan {$column['name']} anda" class="form-control"></textarea>
                             HTML;
                             break;
                         
                         case 'enum':
                             list($field,$list) = explode(',', $column['advfield']);
-                            echo '<select name="form[]" class="form-control" required>';
+                            echo '<select name="form[{$key}]" class="form-control">';
                             echo '<option value="">Pilih</option>';
                             foreach (explode('|', $list) as $item) {
                                 echo '<option value="'.$item.'">' . $item . '</option>';
@@ -155,7 +161,7 @@ if (!function_exists('formGenerator'))
                         echo '<div class="alert alert-info font-weight-bold">Anda belum mengantur ruas ini pada "Pengaturan Form"</div>';
                     } else {
                         echo <<<HTML
-                        <input type="file" name="image" placeholder="masukan {$column['name']} anda" class="form-control d-block" required/>
+                        <input type="file" name="member_image" placeholder="masukan {$column['name']} anda" class="form-control d-block"/>
                         <small>Maksimal ukuran file foto adalah 2MB</small>
                         HTML;
                     }
@@ -165,7 +171,7 @@ if (!function_exists('formGenerator'))
                     $types = ['birth_date' => 'date', 'member_email' => 'email'];
                     $type = isset($types[$column['field']]) ? $types[$column['field']] : 'text';
                     echo <<<HTML
-                    <input type="{$type}" name="form[]" value="{$defaultValue}" placeholder="masukan {$column['name']} anda" class="form-control" required/>
+                    <input type="{$type}" name="form[{$key}]" value="{$defaultValue}" placeholder="masukan {$column['name']} anda" class="form-control"/>
                     HTML;
                     break;
             }
@@ -175,8 +181,18 @@ if (!function_exists('formGenerator'))
             HTML;
         }
         if ($actionUrl !== '') {
+            if ($option->captcha) {
+                // Captcha initialize
+                $captcha = Captcha::section('memberarea');
+
+                echo '<div class="captchaMember my-2">';
+                echo $captcha->getCaptcha();
+                echo '</div>';
+            }
+
+            echo \Volnix\CSRF\CSRF::getHiddenInputString();
             echo '<div class="form-group">
-                <button class="btn btn-primary" type="submit" name="save">Dafter</button>
+                <button class="btn btn-primary" type="submit" name="save">Daftar</button>
                 <button class="btn btn-outline-secondary" type="reset" name="save">Batal</button>
             </div>';
         }
