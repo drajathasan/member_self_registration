@@ -60,6 +60,7 @@ if (!function_exists('formGenerator'))
         $structure = json_decode($data->structure, true);
         $option = json_decode($data->option??'');
         $info = json_decode($data->info);
+
         ob_start();
 
         $withUpload = '';
@@ -87,6 +88,11 @@ if (!function_exists('formGenerator'))
             HTML;
 
             $defaultValue = $record[$column['field']]??$record[$column['advfield']]??'';
+
+            if ($column['advfieldtype'] == 'enum') {
+                list($name, $detail) = explode(',', $column['advfield']);
+                $defaultValue = $record[$name]??'';
+            }
     
             switch ($column['field']) {
                 case 'mpasswd':
@@ -134,22 +140,25 @@ if (!function_exists('formGenerator'))
                             $types = ['varchar' => 'text', 'int' => 'number'];
                             $type = $types[$column['advfieldtype']];
                             echo <<<HTML
-                            <input type="{$type}" name="form[{$key}]" placeholder="masukan {$column['name']} anda" class="form-control"/>
+                            <input type="{$type}" name="form[{$key}]" value="{$defaultValue}" placeholder="masukan {$column['name']} anda" class="form-control"/>
                             HTML;
                             break;
 
                         case 'text':
                             echo <<<HTML
-                            <textarea name="form[{$key}]" placeholder="masukan {$column['name']} anda" class="form-control"></textarea>
+                            <textarea name="form[{$key}]" placeholder="masukan {$column['name']} anda" class="form-control">{$defaultValue}</textarea>
                             HTML;
                             break;
                         
                         case 'enum':
                             list($field,$list) = explode(',', $column['advfield']);
-                            echo '<select name="form[{$key}]" class="form-control">';
+                            echo '<select name="form[' . $key . ']" class="form-control">';
                             echo '<option value="">Pilih</option>';
+                            $selected = '';
                             foreach (explode('|', $list) as $item) {
-                                echo '<option value="'.$item.'">' . $item . '</option>';
+                                if ($defaultValue == $item) $selected = 'selected';
+                                echo '<option value="'.$item.'" '.$selected.'>' . $item . '</option>';
+                                $selected = '';
                             }
                             echo '</select>';
                             break;
@@ -181,10 +190,11 @@ if (!function_exists('formGenerator'))
             HTML;
         }
         if ($actionUrl !== '') {
-            if ($option->captcha) {
-                // Captcha initialize
-                $captcha = Captcha::section('memberarea');
+            // Captcha initialize
+            $captcha = Captcha::section('memberarea');
 
+            if (($option?->captcha??false) && $captcha->isSectionActive()) 
+            {
                 echo '<div class="captchaMember my-2">';
                 echo $captcha->getCaptcha();
                 echo '</div>';

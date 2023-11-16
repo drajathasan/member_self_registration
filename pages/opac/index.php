@@ -2,6 +2,9 @@
 use SLiMS\DB;
 use SLiMS\Url;
 use SLiMS\Filesystems\Storage;
+use SLiMS\Captcha\Factory as Captcha;
+use Volnix\CSRF\CSRF;
+
 $schema = getActiveSchemaData();
 if ($schema === null) throw new Exception("Tidak ada Skema yang aktif.");
 
@@ -18,15 +21,38 @@ if (isset($_POST['form'])) {
             return $data['field'] === 'member_image';
         })));
 
+        if (!CSRF::validate($_POST)) {
+            session_unset();
+            throw new Exception(__('Invalid login form!'));
+        }
+
+        # <!-- Captcha form processing - start -->
+        $captcha = Captcha::section('memberarea');
+        if ($captcha->isSectionActive() && $captcha->isValid() === false) {
+            // set error message
+            $message = isDev() ? $captcha->getError() : __('Wrong Captcha Code entered, Please write the right code!'); 
+            // What happens when the CAPTCHA was entered incorrectly
+            session_unset();
+            throw new Exception($message);
+        }
+        # <!-- Captcha form processing - end -->
+
         if ($_POST['form'][$passwordFieldId] !== $_POST['confirm_password']) throw new Exception("Password tidak cocok");
 
         $sqlSet = [];
         $sqlParams = [];
         $sqlRaw = 'insert ignore into self_registration_' . trim(strtolower(str_replace(' ', '_', $schema->name))) . ' set ';
+        
         foreach ($_POST['form'] as $order => $value) {
+
             $detail = $structure[$order];
             if ($detail['field'] === 'advance') {
-                $detail['field'] = $detail['advfield'];
+                if ($detail['advfieldtype'] == 'enum') {
+                    $field = explode(',', $detail['advfield']);
+                    $detail['field'] = $field[0];
+                } else {
+                    $detail['field'] = $detail['advfield'];
+                }
             }
             $sqlSet[] = '`' .$detail['field'] . '` = ?';
             $sqlParams[] = $value;
@@ -71,10 +97,11 @@ if (isset($_POST['form'])) {
             }
         }
 
-        $insert = DB::query($sqlRaw . implode(',', $sqlSet), $sqlParams);
-        $insert->run();
+        
+        $insert = DB::getInstance()->prepare($sqlRaw . implode(',', $sqlSet));
+        $insert->execute($sqlParams);
 
-        if (!empty($error = $insert->getError())) throw new Exception($error);
+        if ($insert->rowCount() == 0) throw new Exception('Data tidak berhasil disimpan, mungkin karena data sudah ada.');
         
         toastr($option->message_after_save)->jsAlert();
 
