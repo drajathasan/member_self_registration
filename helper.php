@@ -1,5 +1,6 @@
 <?php
 use SLiMS\Captcha\Factory as Captcha;
+use SLiMS\Filesystems\Storage;
 
 if (!function_exists('getActiveSchemaData'))
 {
@@ -73,9 +74,14 @@ if (!function_exists('formGenerator'))
             flash()->danger($key);
         }
 
-        if ($actionUrl === '') {
-            echo '<h3>Pratinjau</h3>';
-            echo '<h5>Skema ' . $data->name . '</h5>';
+        if ($actionUrl === '' || stripos($actionUrl, 'admin') !== false) {
+            if ($actionUrl === '') {
+                echo '<h3>Pratinjau</h3>';
+                echo '<h5>Skema ' . $data->name . '</h5>';
+            } else {
+                echo '<h3>Pratinjau Data</h3>';
+                echo '<h5>Calon anggota ' . $record['member_name'] . '</h5>';
+            }
         } else {
             if ($opac !== null) $opac->page_title = $info->title;
             echo '<div class="alert alert-info"' . strip_tags($info->desc, '<p><a><i><em><h1><h2><h3><ul><ol><li>') . '</div>';
@@ -169,10 +175,15 @@ if (!function_exists('formGenerator'))
                     if (($option?->image??null) === null) {
                         echo '<div class="alert alert-info font-weight-bold">Anda belum mengantur ruas ini pada "Pengaturan Form"</div>';
                     } else {
-                        echo <<<HTML
-                        <input type="file" name="member_image" placeholder="masukan {$column['name']} anda" class="form-control d-block"/>
-                        <small>Maksimal ukuran file foto adalah 2MB</small>
-                        HTML;
+                        if (!isset($record['member_image'])) {
+                            echo <<<HTML
+                            <input type="file" name="member_image" placeholder="masukan {$column['name']} anda" class="form-control d-block"/>
+                            <small>Maksimal ukuran file foto adalah 2MB</small>
+                            HTML;
+                        } else {
+                            $image = Storage::images()->isExists('persons/' . $record['member_image']) ? $record['member_image'] : 'avatar.jpg';
+                            echo '<img src="' . SWB . 'lib/minigalnano/createthumb.php?filename=images/persons/' . $image . '&width=120"/>';
+                        }
                     }
                     break;
 
@@ -193,18 +204,24 @@ if (!function_exists('formGenerator'))
             // Captcha initialize
             $captcha = Captcha::section('memberarea');
 
-            if (($option?->captcha??false) && $captcha->isSectionActive()) 
-            {
-                echo '<div class="captchaMember my-2">';
-                echo $captcha->getCaptcha();
-                echo '</div>';
+            if (strpos($actionUrl, 'admin') === false) {
+                if (($option?->captcha??false) && $captcha->isSectionActive()) 
+                {
+                    echo '<div class="captchaMember my-2">';
+                    echo $captcha->getCaptcha();
+                    echo '</div>';
+                }
+    
+                echo \Volnix\CSRF\CSRF::getHiddenInputString();
+                echo '<div class="form-group">
+                    <button class="btn btn-primary" type="submit" name="save">Daftar</button>
+                    <button class="btn btn-outline-secondary" type="reset" name="save">Batal</button>
+                </div>';
+            } else {
+                echo '<div class="form-group">
+                    <button class="btn btn-success" type="submit" name="acc">Setujui</button>
+                </div>';
             }
-
-            echo \Volnix\CSRF\CSRF::getHiddenInputString();
-            echo '<div class="form-group">
-                <button class="btn btn-primary" type="submit" name="save">Daftar</button>
-                <button class="btn btn-outline-secondary" type="reset" name="save">Batal</button>
-            </div>';
         }
         echo '</form>';
         return ob_get_clean();

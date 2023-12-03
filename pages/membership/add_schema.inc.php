@@ -7,6 +7,18 @@ if (isset($_POST['saveData'])) {
     // Get MySQL Grammer reflection class
     $mysqlGrammar = new ReflectionClass(new Mysql);
 
+    if (empty($_POST['name']??'')) {
+        exit(toastr('Nama skema tidak boleh kosong!')->warning('Peringatan'));
+    }
+
+    // had custom table
+    $hadCustomTable = (bool)count(array_filter($_POST['column'], fn($column) => $column['field'] === 'advance'));
+
+    // requirement field
+    $isRequirementFieldsExists = (bool)count(array_filter($_POST['column'], fn($column) => in_array($column['field'], ['member_id','member_name','gender'])));
+
+    if (!$isRequirementFieldsExists) exit(toastr('Ruas member_id, member_name dan gender tidak ditemukan')->error('Galat'));
+
     // Get private property without change it
     $property = @array_pop($mysqlGrammar->getProperties(ReflectionProperty::IS_PRIVATE));
 
@@ -78,40 +90,42 @@ if (isset($_POST['saveData'])) {
         $table->collation = 'utf8_unicode_ci';
     });
 
-    Schema::table('member_custom', function($table) use($memberSchema,$mysqlColumnType,$slimsSchemaColumnType) {
-        foreach ($_POST['column'] as $column) {
-            if ($column['field'] !== 'advance') continue;
+    if ($hadCustomTable) {
+        Schema::table('member_custom', function($table) use($memberSchema,$mysqlColumnType,$slimsSchemaColumnType) {
+            foreach ($_POST['column'] as $column) {
+                if ($column['field'] !== 'advance') continue;
 
-            // Search kolom in member schema
-            $detail = @array_pop(array_filter($memberSchema, function($detail) use($column) {
-                if ($column['field'] === $detail['COLUMN_NAME']) return true;
-            }));
+                // Search kolom in member schema
+                $detail = @array_pop(array_filter($memberSchema, function($detail) use($column) {
+                    if ($column['field'] === $detail['COLUMN_NAME']) return true;
+                }));
 
-            // Determine data type based on member table or advance form
-            $dataType = $detail['DATA_TYPE']??$column['advfieldtype'];
-            $typeId = @array_pop(array_keys(array_filter($mysqlColumnType, fn($type) => $type === $dataType)));
+                // Determine data type based on member table or advance form
+                $dataType = $detail['DATA_TYPE']??$column['advfieldtype'];
+                $typeId = @array_pop(array_keys(array_filter($mysqlColumnType, fn($type) => $type === $dataType)));
 
-            $blueprintMethod = $slimsSchemaColumnType[$typeId]??$dataType;
+                $blueprintMethod = $slimsSchemaColumnType[$typeId]??$dataType;
 
-            $field = $column['advfield'];
+                $field = $column['advfield'];
 
-            if ($blueprintMethod === 'enum') {
-                list($field, $data) = explode(',', $field);
-                $detail['CHARACTER_MAXIMUM_LENGTH'] = explode('|', trim($data));
+                if ($blueprintMethod === 'enum') {
+                    list($field, $data) = explode(',', $field);
+                    $detail['CHARACTER_MAXIMUM_LENGTH'] = explode('|', trim($data));
+                }
+
+                $params = (!in_array($blueprintMethod, ['text','date','datetime']) ? [
+                    $field, ($detail['CHARACTER_MAXIMUM_LENGTH']??64)
+                ] : [
+                    $field
+                ]);
+
+                $table->{$blueprintMethod}(...$params)->nullable()->add();
+
+                unset($detail);
+                unset($typeId);
             }
-
-            $params = (!in_array($blueprintMethod, ['text','date','datetime']) ? [
-                $field, ($detail['CHARACTER_MAXIMUM_LENGTH']??64)
-            ] : [
-                $field
-            ]);
-
-            $table->{$blueprintMethod}(...$params)->nullable()->add();
-
-            unset($detail);
-            unset($typeId);
-        }
-    });
+        });
+    }
 
 
     redirect()->simbioAJAX(pluginUrl(reset: true));
@@ -178,7 +192,7 @@ $form->addAnything('<strong>Struktur</strong>', <<<HTML
             </div>
         </div>
     </div>
-    <button row="1" class="addRow notAJAX btn btn-secondary btn-sm col-2 my-3">Tambah Selanjutnya</button>
+    <button row="1" class="addRow notAJAX btn btn-success btn-sm col-2 my-3">Tambah Selanjutnya</button>
 </div>
 HTML);
 
@@ -223,6 +237,11 @@ echo $form->printOut();
     })
 
     area.on('keyup', '.columnName', function(){
+        let labelRow = $(this).data('label')
+        $(`#columnName${labelRow}`).html($(this).val())
+    })
+
+    area.on('blur', '.columnName', function(){
         let labelRow = $(this).data('label')
         $(`#columnName${labelRow}`).html($(this).val())
     })

@@ -41,7 +41,7 @@ $activeSchema = DB::getInstance()->query('select * from self_registration_schema
 
 if (isset($_POST['form_config'])) {
     // Fetch active schema
-    $update = DB::getInstance()->prepare('update self_registration_schemas set option = ? where id = ?');
+    $update = DB::getInstance()->prepare('update `self_registration_schemas` set `option` = ? where `id` = ?');
     $update->execute([json_encode($_POST['form_config']), $_POST['schema_id']]);
     
     toastr('Data berhasil disimpan')->success();
@@ -56,7 +56,7 @@ if (isset($_POST['schema_id']) && isset($_POST['action']) && $_POST['action'] ==
     $detail = $schemaById->fetchObject();
 
     // Delete schema data
-    DB::getInstance()->prepare('delete from self_registration_schemas where id = ?')->execute([$_POST['schema_id']]);
+    DB::getInstance()->prepare('delete from `self_registration_schemas` where `id` = ?')->execute([$_POST['schema_id']]);
     Schema::drop('self_registration_' . trim(str_replace(' ', '_', strtolower($detail->name))));
 
     // filtering only for advance field only

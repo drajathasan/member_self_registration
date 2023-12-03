@@ -3,7 +3,7 @@
  * @author Drajat Hasan
  * @email drajathasan20@gmail.com
  * @create date 2022-03-28 10:28:36
- * @modify date 2022-03-28 10:31:11
+ * @modify date 2023-12-03 05:09:20
  * @license GPLv3
  * @desc [description]
  */
@@ -16,7 +16,7 @@ class CreateSchema extends Migration
 {
     public function up()
     {
-        Schema::create('self_registartion_schemas', function(Blueprint $table){
+        Schema::create('self_registration_schemas', function(Blueprint $table){
             $table->autoIncrement('id');
             $table->string('name', 32)->notNull();
             $table->text('structure')->notNull();

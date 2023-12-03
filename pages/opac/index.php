@@ -11,7 +11,7 @@ if ($schema === null) throw new Exception("Tidak ada Skema yang aktif.");
 if (isset($_POST['form'])) {
     try {
         $structure = json_decode($schema->structure, true);
-        $option = json_decode($schema->option);
+        $option = json_decode($schema->option??'');
 
         $passwordFieldId = @array_pop(array_keys(array_filter($structure, function($data){
             return $data['field'] === 'mpasswd';
@@ -28,7 +28,7 @@ if (isset($_POST['form'])) {
 
         # <!-- Captcha form processing - start -->
         $captcha = Captcha::section('memberarea');
-        if ($captcha->isSectionActive() && $captcha->isValid() === false) {
+        if (($option?->captcha??false) && $captcha->isSectionActive() && $captcha->isValid() === false) {
             // set error message
             $message = isDev() ? $captcha->getError() : __('Wrong Captcha Code entered, Please write the right code!'); 
             // What happens when the CAPTCHA was entered incorrectly
@@ -37,7 +37,9 @@ if (isset($_POST['form'])) {
         }
         # <!-- Captcha form processing - end -->
 
-        if ($_POST['form'][$passwordFieldId] !== $_POST['confirm_password']) throw new Exception("Password tidak cocok");
+        if (isset($_POST['form'][$passwordFieldId]) && $_POST['form'][$passwordFieldId] !== $_POST['confirm_password']) {
+            throw new Exception("Password tidak cocok");
+        }
 
         $sqlSet = [];
         $sqlParams = [];
@@ -103,7 +105,7 @@ if (isset($_POST['form'])) {
 
         if ($insert->rowCount() == 0) throw new Exception('Data tidak berhasil disimpan, mungkin karena data sudah ada.');
         
-        toastr($option->message_after_save)->jsAlert();
+        if ($option?->message_after_save??false) toastr($option->message_after_save)->jsAlert();
 
     } catch (Exception $e) {
         redirect()->withMessage('self_regis_error', $e->getMessage())->back();

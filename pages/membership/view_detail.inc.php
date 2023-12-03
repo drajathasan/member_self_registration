@@ -9,7 +9,7 @@ $record->execute([$_GET['member_id']]);
 // Retrive all column detail in member table
 // $memberSchema = Schema::table('member')->columns($detail = true);
 
-$content = formGenerator($schema, $record->fetch(PDO::FETCH_ASSOC));
+$content = formGenerator($schema, $record->fetch(PDO::FETCH_ASSOC), pluginUrl(['acc_member' => 'yes']));
 
 // include the page template
 require SB.'/admin/'.$sysconf['admin_template']['dir'].'/notemplate_page_tpl.php';

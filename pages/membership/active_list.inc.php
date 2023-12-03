@@ -27,7 +27,7 @@ $datagrid->setSQLorder('created_at DESC');
 
 function setButton($dbs, $data)
 {
-    return '<a height="500" title="Detail ' . $data[2] . '" href="' . pluginUrl(['section' => 'view_detail', 'member_id' => $data[0], 'headless' => 'yes']) . '" class="notAJAX openPopUp btn btn-outline-primary"><i class="fa fa-pencil"></i></a>';
+    return '<a height="500" title="Detail ' . $data[2] . '" href="' . pluginUrl(['section' => 'view_detail', 'member_id' => $data[0], 'headless' => 'yes']) . '" class="notAJAX openPopUp btn btn-primary"><i class="fa fa-pencil"></i></a>';
 }
 
 $datagrid->modifyColumnContent(0, 'callback{setButton}');
