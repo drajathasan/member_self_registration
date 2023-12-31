@@ -19,7 +19,10 @@ class CreateSchema extends Migration
         Schema::create('self_registration_schemas', function(Blueprint $table){
             $table->autoIncrement('id');
             $table->string('name', 32)->notNull();
+            $table->text('info')->notNull();
             $table->text('structure')->notNull();
+            $table->tinynumber('status', 1)->default(0);
+            $table->text('option')->nullable();
             $table->timestamps();
             $table->index('name');
             $table->unique('name');
