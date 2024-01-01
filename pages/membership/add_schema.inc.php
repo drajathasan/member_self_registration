@@ -35,7 +35,10 @@ if (isset($_POST['saveData'])) {
     $_POST['name'] = preg_replace('/[^A-Za-z\s]/', '', $_POST['name']);
     $newTable = 'self_registration_' . strtolower(str_replace(' ', '_', $_POST['name']));
 
-    $insert->execute([$_POST['name'], json_encode($_POST['info']), json_encode($_POST['column'])]);
+    $insert->execute([$_POST['name'], json_encode($_POST['info']), json_encode(array_map(function($data) {
+        $data['is_required'] = (bool)$data['is_required'];
+        return $data;
+    }, $_POST['column']))]);
 
     $indexes = [];
 
@@ -170,7 +173,11 @@ $form->addAnything('<strong>Struktur</strong>', <<<HTML
             <label id="label-1"><strong>Ruas <b id="columnName1"></b></strong></label>
             <div class="d-flex flex-row">
                 <input type="text" class="columnName form-control col-4 noAutoFocus" data-label="1" name="column[1][name]" placeholder="Label yang akan muncul di formulir"/>
-                <select class="form-control col-4 noAutoFocus" name="column[1][field]" data-row="1">
+                <select class="form-control col-1 noAutoFocus" name="column[1][is_required]">
+                    <option value="1">Wajib Diisi</option>
+                    <option value="0">Opsional</option>
+                </select>
+                <select class="form-control col-3 noAutoFocus" name="column[1][field]" data-row="1">
                     <option value="">Pilih Kolom Database</option>
                     {$columns}
                 </select>
@@ -206,7 +213,11 @@ echo $form->printOut();
         <label id="label-1"><strong>Ruas <b id="columnName{column}"></b></strong></label>
         <div class="d-flex flex-row">
             <input type="text" class="columnName form-control col-4 noAutoFocus" data-label="{column}" name="column[{column}][name]" placeholder="Label yang akan muncul di formulir"/>
-            <select class="form-control col-4 noAutoFocus" name="column[{column}][field]" data-row="{column}">
+            <select class="form-control col-1 noAutoFocus" name="column[{column}][is_required]">
+                <option value="1">Wajib Diisi</option>
+                <option value="0">Opsional</option>
+            </select>
+            <select class="form-control col-3 noAutoFocus" name="column[{column}][field]" data-row="{column}">
                 <option value="">Pilih Kolom Database</option>
                 <?= $columns ?>
             </select>

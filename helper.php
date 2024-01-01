@@ -99,15 +99,17 @@ if (!function_exists('formGenerator'))
                 list($name, $detail) = explode(',', $column['advfield']);
                 $defaultValue = $record[$name]??'';
             }
+
+            $is_required = $column['is_required'] === true ? ' required' : '';
     
             switch ($column['field']) {
                 case 'mpasswd':
                     echo <<<HTML
                     <br>
                     <small>tulis dibawah berikut</small>
-                    <input type="password" placeholder="masukan {$column['name']} anda" name="form[{$key}]" id="pass1" class="form-control">
+                    <input type="password" placeholder="masukan {$column['name']} anda" name="form[{$key}]" id="pass1" class="form-control" {$is_required}>
                     <small>konfirmasi ulang password anda</small>
-                    <input type="password" name="confirm_password" placeholder="masukan ulang {$column['name']} anda" id="pass2" class="form-control">
+                    <input type="password" name="confirm_password" placeholder="masukan ulang {$column['name']} anda" id="pass2" class="form-control" {$is_required}>
                     HTML;
                     break;
 
@@ -115,7 +117,7 @@ if (!function_exists('formGenerator'))
                     $man = $defaultValue != 1 ?:'selected';
                     $woman = $defaultValue != 0 ?:'selected';
                     echo <<<HTML
-                    <select name="form[{$key}]" class="form-control">
+                    <select name="form[{$key}]" class="form-control" {$is_required}>
                         <option>Pilih</option>
                         <option value="1" {$man}>Laki-Laki</option>
                         <option value="0" {$woman}>Perempuan</option>
@@ -125,13 +127,13 @@ if (!function_exists('formGenerator'))
 
                 case 'member_address':
                     echo <<<HTML
-                    <textarea name="form[{$key}]" placeholder="masukan {$column['name']} anda" class="form-control">{$defaultValue}</textarea>
+                    <textarea name="form[{$key}]" placeholder="masukan {$column['name']} anda" class="form-control" {$is_required}>{$defaultValue}</textarea>
                     HTML;
                     break;
 
                 case 'member_type_id':
                     $memberType = \SLiMS\DB::getInstance()->query('select member_type_id, member_type_name from mst_member_type');
-                    echo '<select class="form-control" name="form[' . $key . ']">';
+                    echo '<select class="form-control" name="form[' . $key . ']" ' . $is_required . '>';
                     echo '<option value="0">Pilih</option>';
                     while ($result = $memberType->fetch(PDO::FETCH_NUM)) {
                         echo '<option value="' . $result[0] . '" ' . ($defaultValue != $result[0] ?:'selected') . '>' . $result[1] . '</option>';
@@ -146,19 +148,19 @@ if (!function_exists('formGenerator'))
                             $types = ['varchar' => 'text', 'int' => 'number'];
                             $type = $types[$column['advfieldtype']];
                             echo <<<HTML
-                            <input type="{$type}" name="form[{$key}]" value="{$defaultValue}" placeholder="masukan {$column['name']} anda" class="form-control"/>
+                            <input type="{$type}" name="form[{$key}]" value="{$defaultValue}" placeholder="masukan {$column['name']} anda" class="form-control" {$is_required}/>
                             HTML;
                             break;
 
                         case 'text':
                             echo <<<HTML
-                            <textarea name="form[{$key}]" placeholder="masukan {$column['name']} anda" class="form-control">{$defaultValue}</textarea>
+                            <textarea name="form[{$key}]" placeholder="masukan {$column['name']} anda" class="form-control" {$is_required}>{$defaultValue}</textarea>
                             HTML;
                             break;
                         
                         case 'enum':
                             list($field,$list) = explode(',', $column['advfield']);
-                            echo '<select name="form[' . $key . ']" class="form-control">';
+                            echo '<select name="form[' . $key . ']" class="form-control" '.$defaultValue.'>';
                             echo '<option value="">Pilih</option>';
                             $selected = '';
                             foreach (explode('|', $list) as $item) {
@@ -177,12 +179,12 @@ if (!function_exists('formGenerator'))
                     } else {
                         if (!isset($record['member_image'])) {
                             echo <<<HTML
-                            <input type="file" name="member_image" placeholder="masukan {$column['name']} anda" class="form-control d-block"/>
+                            <input type="file" name="member_image" placeholder="masukan {$column['name']} anda" class="form-control d-block" {$is_required}/>
                             <small>Maksimal ukuran file foto adalah 2MB</small>
                             HTML;
                         } else {
                             $image = Storage::images()->isExists('persons/' . $record['member_image']) ? $record['member_image'] : 'avatar.jpg';
-                            echo '<img src="' . SWB . 'lib/minigalnano/createthumb.php?filename=images/persons/' . $image . '&width=120"/>';
+                            echo '<img class="d-block"src="' . SWB . 'lib/minigalnano/createthumb.php?filename=images/persons/' . $image . '&width=120"/>';
                         }
                     }
                     break;
@@ -191,7 +193,7 @@ if (!function_exists('formGenerator'))
                     $types = ['birth_date' => 'date', 'member_email' => 'email'];
                     $type = isset($types[$column['field']]) ? $types[$column['field']] : 'text';
                     echo <<<HTML
-                    <input type="{$type}" name="form[{$key}]" value="{$defaultValue}" placeholder="masukan {$column['name']} anda" class="form-control"/>
+                    <input type="{$type}" name="form[{$key}]" value="{$defaultValue}" placeholder="masukan {$column['name']} anda" class="form-control" {$is_required}/>
                     HTML;
                     break;
             }

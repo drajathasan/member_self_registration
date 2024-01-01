@@ -85,6 +85,30 @@ if (isset($_POST['schema_id']) && isset($_POST['action']) && $_POST['action'] ==
     exit;
 }
 
+if (isset($_POST['acc']) && $activeSchema->rowCount() > 0) {
+    $schema = $activeSchema->fetchObject();
+    $baseTable = 'self_registration_' . trim(strtolower(str_replace(' ', '_', $schema->name)));
+    $data = DB::getInstance()->prepare('select * from ' . $baseTable . ' where member_id = ?');
+    $data->execute([$_POST['form'][1]]);
+
+    $result = $data->fetch(PDO::FETCH_ASSOC);
+
+    unset($result['created_at']);
+    unset($result['updated_at']);
+
+    $columns = array_map(function($column) {
+        return '`' . $column . '` = ?';
+    }, array_keys($result));
+
+    dd($columns);
+
+    $insert = DB::getInstance()->prepare(<<<SQL
+    insert ignore 
+            into `member`
+                set 
+    SQL);
+}
+
 /*---- End of Http Request Process ----*/
 
 $page_title = 'Daftar Online';
