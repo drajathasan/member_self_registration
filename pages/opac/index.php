@@ -98,6 +98,7 @@ if (isset($_POST['form'])) {
                 }
             }
         }
+        $sqlSet[] = '`created_at` = now()';
 
         
         $insert = DB::getInstance()->prepare($sqlRaw . implode(',', $sqlSet));

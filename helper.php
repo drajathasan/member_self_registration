@@ -104,6 +104,9 @@ if (!function_exists('formGenerator'))
     
             switch ($column['field']) {
                 case 'mpasswd':
+                    if ($actionUrl !== '') {
+                        $is_required = '';
+                    }
                     echo <<<HTML
                     <br>
                     <small>tulis dibawah berikut</small>

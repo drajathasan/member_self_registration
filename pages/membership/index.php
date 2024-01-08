@@ -93,20 +93,51 @@ if (isset($_POST['acc']) && $activeSchema->rowCount() > 0) {
 
     $result = $data->fetch(PDO::FETCH_ASSOC);
 
+    $result['input_date'] = $result['created_at'];
     unset($result['created_at']);
     unset($result['updated_at']);
 
-    $columns = array_map(function($column) {
-        return '`' . $column . '` = ?';
-    }, array_keys($result));
+    $result['register_date'] = date('Y-m-d');
+    $result['member_since_date'] = date('Y-m-d');
+    $result['last_update'] = date('Y-m-d');
+    $result['expire_date'] = date('Y-m-d', strtotime('+1 year'));
+    $result['is_new'] = 1;
 
-    dd($columns);
+    if (isset($result['member_type_id'])) {
+        $memberType = DB::getInstance()->prepare('select member_periode from mst_member_type where member_type_id = ?');
+        $memberType->execute([$result['member_type_id']]);
+
+        if ($memberType->rowCount() == 1) {
+            $memberTypeData = $memberType->fetchObject();
+            $periode = $memberTypeData->member_periode;
+            $result['expire_date'] = date('Y-m-d', strtotime('+' . $periode . ' days'));
+        }
+    }
+
+    $columns = implode(',', array_map(function($column) {
+        return '`' . $column . '` = ?';
+    }, array_keys($result)));
 
     $insert = DB::getInstance()->prepare(<<<SQL
     insert ignore 
             into `member`
-                set 
+                set {$columns}
     SQL);
+
+    $process = $insert->execute(array_values($result));
+
+    if ($process) {
+        toastr('Data berhasil disimpan')->success();
+        echo '<script>top.jQuery.colorbox.close();</script>';
+
+        // delete data
+        $delete = DB::getInstance()->prepare('delete from ' . $baseTable . ' where member_id = ?');
+        $delete->execute([$_POST['form'][1]]);
+        echo '<script>top.jQuery.colorbox.close();</script>';
+        redirect()->simbioAJAX(pluginUrl(reset: true));
+    }
+
+    exit;
 }
 
 /*---- End of Http Request Process ----*/
