@@ -140,6 +140,18 @@ if (isset($_POST['acc']) && $activeSchema->rowCount() > 0) {
     exit;
 }
 
+if (isset($_GET['action']) && $_GET['action'] === 'delete_reg') {
+    $schema = $activeSchema->fetchObject();
+    $baseTable = 'self_registration_' . trim(strtolower(str_replace(' ', '_', $schema->name)));
+
+    $delete = DB::getInstance()->prepare('delete from ' . $baseTable . ' where `member_id` = ?');
+    $delete->execute([$_GET['member_id']]);
+
+    echo '<script>top.jQuery.colorbox.close();</script>';
+    redirect()->simbioAJAX(pluginUrl(reset: true));
+    exit;
+}
+
 /*---- End of Http Request Process ----*/
 
 $page_title = 'Daftar Online';

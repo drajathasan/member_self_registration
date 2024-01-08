@@ -57,6 +57,11 @@ if (isset($_POST['form'])) {
                 }
             }
             $sqlSet[] = '`' .$detail['field'] . '` = ?';
+
+            if ($detail['field'] === 'mpasswd') {
+                $value = password_hash($value, PASSWORD_BCRYPT);
+            }
+
             $sqlParams[] = $value;
         }
 

@@ -225,6 +225,7 @@ if (!function_exists('formGenerator'))
             } else {
                 echo '<div class="form-group">
                     <button class="btn btn-success" type="submit" name="acc">Setujui</button>
+                    <a class="btn btn-danger" href="' .  pluginUrl(['section' => 'view_detail', 'member_id' => $_GET['member_id']??0, 'headless' => 'yes', 'action' => 'delete_reg']) . '">Hapus</a>
                 </div>';
             }
         }
