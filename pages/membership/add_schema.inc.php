@@ -14,6 +14,14 @@ if (isset($_POST['saveData'])) {
     // had custom table
     $hadCustomTable = (bool)count(array_filter($_POST['column'], fn($column) => $column['field'] === 'advance'));
 
+    if ($hadCustomTable) {
+        foreach ($_POST['column'] as $key => $advColumn) {
+            if ($advColumn['field'] === 'advance') {
+                $_POST['column'][$key]['advfield'] = 'adv_' . $advColumn['advfield'];
+            }
+        }
+    }
+
     // requirement field
     $isRequirementFieldsExists = (bool)count(array_filter($_POST['column'], fn($column) => in_array($column['field'], ['member_id','member_name','gender'])));
 
@@ -42,9 +50,9 @@ if (isset($_POST['saveData'])) {
 
     $indexes = [];
 
-    Schema::create($newTable, function($table) use($memberSchema,$mysqlColumnType,$slimsSchemaColumnType) {
+    $createBase = Schema::create($newTable, function($table) use($memberSchema,$mysqlColumnType,$slimsSchemaColumnType) {
 
-        foreach ($_POST['column'] as $column) {
+        foreach ($_POST['column'] as $key => $column) {
 
             // Search kolom in member schema
             $detail = @array_pop(array_filter($memberSchema, function($detail) use($column) {
@@ -65,9 +73,21 @@ if (isset($_POST['saveData'])) {
 
             $field = trim(empty($column['advfield']) ? $column['field'] : $column['advfield']);
 
+            // ,'text_multiple'
             if ($blueprintMethod === 'enum') {
+                $blueprintMethod = 'enum';
                 list($field, $data) = explode(',', $field);
                 $detail['CHARACTER_MAXIMUM_LENGTH'] = explode('|', trim($data));
+            }
+
+            if ($blueprintMethod === 'enum_radio') {
+                $blueprintMethod = 'string';
+                list($field, $data) = explode(',', $field);
+            }
+
+            if ($blueprintMethod === 'text_multiple') {
+                $blueprintMethod = 'text';
+                list($field, $data) = explode(',', $field);
             }
 
             if (in_array($field, ['member_id', 'member_name'])) {
@@ -93,8 +113,10 @@ if (isset($_POST['saveData'])) {
         $table->collation = 'utf8_unicode_ci';
     });
 
+    // dump($createBase);
+
     if ($hadCustomTable) {
-        Schema::table('member_custom', function($table) use($memberSchema,$mysqlColumnType,$slimsSchemaColumnType) {
+        $createCustomBase = Schema::table('member_custom', function($table) use($memberSchema,$mysqlColumnType,$slimsSchemaColumnType) {
             foreach ($_POST['column'] as $column) {
                 if ($column['field'] !== 'advance') continue;
 
@@ -112,8 +134,19 @@ if (isset($_POST['saveData'])) {
                 $field = $column['advfield'];
 
                 if ($blueprintMethod === 'enum') {
+                    $blueprintMethod = 'enum';
                     list($field, $data) = explode(',', $field);
                     $detail['CHARACTER_MAXIMUM_LENGTH'] = explode('|', trim($data));
+                }
+    
+                if ($blueprintMethod === 'enum_radio') {
+                    $blueprintMethod = 'string';
+                    list($field, $data) = explode(',', $field);
+                }
+    
+                if ($blueprintMethod === 'text_multiple') {
+                    $blueprintMethod = 'text';
+                    list($field, $data) = explode(',', $field);
                 }
 
                 $params = (!in_array($blueprintMethod, ['text','date','datetime']) ? [
@@ -131,6 +164,7 @@ if (isset($_POST['saveData'])) {
     }
 
 
+    // dd($createCustomBase);
     redirect()->simbioAJAX(pluginUrl(reset: true));
     exit;
 }
@@ -194,6 +228,8 @@ $form->addAnything('<strong>Struktur</strong>', <<<HTML
                         <option value="varchar">Teks Singkat</option>
                         <option value="text">Teks Paragraf</option>
                         <option value="enum">Daftar</option>
+                        <option value="enum_radio">Daftar Radio</option>
+                        <option value="text_multiple">Pilihan Ganda</option>
                     </select>
                 </div>
             </div>
@@ -235,6 +271,8 @@ echo $form->printOut();
                     <option value="varchar">Teks Singkat</option>
                     <option value="text">Teks Paragraf</option>
                     <option value="enum">Daftar</option>
+                    <option value="enum_radio">Daftar Radio</option>
+                        <option value="text_multiple">Pilihan Ganda</option>
                 </select>
             </div>
         </div>

@@ -64,10 +64,11 @@ if (!function_exists('formGenerator'))
 
         ob_start();
 
+        $js = '';
         $withUpload = '';
         if (($option?->image??false)) $withUpload = 'enctype="multipart/form-data"';
 
-        echo '<form method="POST" action="' . $actionUrl . '" ' . $withUpload . '>';
+        echo '<form id="self_member" method="POST" action="' . $actionUrl . '" ' . $withUpload . '>';
 
         if ($key = flash()->includes('self_regis_error'))
         {
@@ -86,7 +87,7 @@ if (!function_exists('formGenerator'))
             if ($opac !== null) $opac->page_title = $info->title;
             echo '<div class="alert alert-info"' . strip_tags($info->desc, '<p><a><i><em><h1><h2><h3><ul><ol><li>') . '</div>';
         }
-        
+
         foreach ($structure as $key => $column) {
             echo <<<HTML
             <div class="my-3">
@@ -95,7 +96,7 @@ if (!function_exists('formGenerator'))
 
             $defaultValue = $record[$column['field']]??$record[$column['advfield']]??'';
 
-            if ($column['advfieldtype'] == 'enum') {
+            if (in_array($column['advfieldtype'], ['enum','enum_radio','text_multiple'])) {
                 list($name, $detail) = explode(',', $column['advfield']);
                 $defaultValue = $record[$name]??'';
             }
@@ -145,6 +146,7 @@ if (!function_exists('formGenerator'))
                     break;
                 
                 case 'advance':
+                    // dump($column['advfieldtype']);
                     switch ($column['advfieldtype']) {
                         case 'varchar':
                         case 'int':
@@ -172,6 +174,61 @@ if (!function_exists('formGenerator'))
                                 $selected = '';
                             }
                             echo '</select>';
+                            break;
+
+                        case 'enum_radio':
+                            $field = explode(',', $column['advfield']);
+                            $uniqueId = md5($field[0]);
+                            $checked = '';
+
+                            if ($is_required) {
+                                $js .= <<<HTML
+                                if ($('.radio{$uniqueId}:checked').length < 1) {
+                                    evt.preventDefault();
+                                    alert('Pilih salah satu dari isian {$column['name']}');
+                                    return;
+                                }
+                                HTML;
+                            }
+
+                            echo '<div class="d-flex flex-column">';
+                            foreach (explode('|', trim($field[1])) as $optionKey => $value) {
+                                if (empty($value)) continue;
+                                if ($defaultValue == $value) $checked = 'checked';
+                                echo '<div>
+                                    <input class="radio'.$uniqueId.'" id="radio' . $uniqueId . '-' . $optionKey . '" data-title="' . $column['name'] . '" type="radio" name="form[' . $key . ']" value="' . $value . '" ' . $checked . '/>
+                                    <label for="radio' . $uniqueId . '-' . $optionKey . '" style="cursor: pointer">' . $value . '</label>
+                                </div>';
+                            }
+                            echo '</div>';
+                            break;
+                        case 'text_multiple':
+                            $field = explode(',', $column['advfield']);
+                            $uniqueId = md5($field[0]);
+                            $defaultValue = json_decode(trim($defaultValue), true);
+                            $checked = '';
+
+                            if ($is_required) {
+                                $js .= <<<HTML
+                                if ($('.checkbox{$uniqueId}:checked').length < 1) {
+                                    evt.preventDefault();
+                                    alert('Pilih salah satu dari isian {$column['name']}');
+                                    return;
+                                }
+                                HTML;
+                            }
+
+                            echo '<div class="d-flex flex-column">';
+                            foreach (explode('|', trim($field[1])) as $optionKey => $value) {
+                                if (empty($value)) continue;
+                                if (in_array($value, $defaultValue??[])) $checked = 'checked';
+                                echo '<div class="mx-3">
+                                    <input class="checkbox'.$uniqueId.'" id="checkbox' . $uniqueId . '-' . $optionKey . '" type="checkbox" name="form[' . $key . '][]" value="' . $value . '" ' . $checked . '/>
+                                    <label for="checkbox' . $uniqueId . '-' . $optionKey . '" style="cursor: pointer">' . $value . '</label>
+                                </div>';
+                                $checked = '';
+                            }
+                            echo '</div>';
                             break;
                     }
                     break;
@@ -230,6 +287,17 @@ if (!function_exists('formGenerator'))
             }
         }
         echo '</form>';
+        if (!empty($js) && strpos($actionUrl, 'admin') === false) {
+            echo <<<HTML
+            <script>
+                $(document).ready(function() {
+                    $('#self_member').submit(function(evt) {
+                        {$js}
+                    })
+                })
+            </script>
+            HTML;
+        }
         return ob_get_clean();
     }
 }

@@ -73,7 +73,7 @@ if (isset($_POST['schema_id']) && isset($_POST['action']) && $_POST['action'] ==
     }, $advanceOnly);
 
     // Drop column from member custom
-    foreach($fieldsToDrop as $column) Schema::dropColumn('member_custom', $column);
+    foreach($fieldsToDrop as $column) Schema::dropColumn('member_custom', 'adv_' . $column);
     exit;
 }
 
@@ -89,9 +89,35 @@ if (isset($_POST['acc']) && $activeSchema->rowCount() > 0) {
     $schema = $activeSchema->fetchObject();
     $baseTable = 'self_registration_' . trim(strtolower(str_replace(' ', '_', $schema->name)));
     $data = DB::getInstance()->prepare('select * from ' . $baseTable . ' where member_id = ?');
-    $data->execute([$_POST['form'][1]]);
+    $data->execute([$_GET['member_id']??0]);
+
+    if ($data->rowCount() < 1) {
+        redirect()->back();
+        exit;
+    }
 
     $result = $data->fetch(PDO::FETCH_ASSOC);
+    $result_customs = [];
+
+    $columnNames = array_keys($result);
+    foreach ($columnNames as $key => $value) {
+        $newValue = $_POST['form'][$key + 1]??'';
+
+        if (substr($value, 0,4) === 'adv_') {
+            $result_customs[$value] = $newValue;
+            unset($result[$value]);
+            continue;
+        }
+
+        if ($value === 'mpasswd' && !empty($newValue)) {
+            $_POST['form'][$key + 1] = password_hash($newValue, PASSWORD_BCRYPT);
+        }
+
+        if (empty($newValue)) continue;
+        if (is_array($newValue)) $newValue = json_encode($newValue);
+
+        $result[$value] = $newValue;
+    }
 
     $result['input_date'] = $result['created_at'];
     unset($result['created_at']);
@@ -113,6 +139,8 @@ if (isset($_POST['acc']) && $activeSchema->rowCount() > 0) {
             $result['expire_date'] = date('Y-m-d', strtotime('+' . $periode . ' days'));
         }
     }
+
+    dd(array_keys($result), array_values($result));
 
     $columns = implode(',', array_map(function($column) {
         return '`' . $column . '` = ?';

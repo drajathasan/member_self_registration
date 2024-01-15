@@ -22,8 +22,8 @@ if (isset($_POST['form'])) {
         })));
 
         if (!CSRF::validate($_POST)) {
-            session_unset();
-            throw new Exception(__('Invalid login form!'));
+            // session_unset();
+            // throw new Exception(__('Invalid login form!'));
         }
 
         # <!-- Captcha form processing - start -->
@@ -48,19 +48,23 @@ if (isset($_POST['form'])) {
         foreach ($_POST['form'] as $order => $value) {
 
             $detail = $structure[$order];
+            
             if ($detail['field'] === 'advance') {
-                if ($detail['advfieldtype'] == 'enum') {
+                if (in_array($detail['advfieldtype'], ['enum','enum_radio','text_multiple'])) {
                     $field = explode(',', $detail['advfield']);
                     $detail['field'] = $field[0];
                 } else {
                     $detail['field'] = $detail['advfield'];
                 }
             }
+
             $sqlSet[] = '`' .$detail['field'] . '` = ?';
 
             if ($detail['field'] === 'mpasswd') {
                 $value = password_hash($value, PASSWORD_BCRYPT);
             }
+
+            if (is_array($value)) $value = json_encode($value);
 
             $sqlParams[] = $value;
         }
@@ -105,7 +109,6 @@ if (isset($_POST['form'])) {
         }
         $sqlSet[] = '`created_at` = now()';
 
-        
         $insert = DB::getInstance()->prepare($sqlRaw . implode(',', $sqlSet));
         $insert->execute($sqlParams);
 
