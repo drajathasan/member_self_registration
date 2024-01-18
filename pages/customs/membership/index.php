@@ -555,62 +555,61 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
         }
     }
 
-    if (isset($_POST['itemID'])) {
+    // get current member
+    $member_custom = DB::getInstance()->prepare('select * from member_custom where member_id = ?');
+    $member_custom->execute([$_POST['itemID']??0]);
 
-      // get current member
-      $member_custom = DB::getInstance()->prepare('select * from member_custom where member_id = ?');
-      $member_custom->execute([$_POST['itemID']??0]);
+    if ($member_custom->rowCount() < 1) return;
+    $member_custom_data = $member_custom->fetch(PDO::FETCH_ASSOC);
 
-      if ($member_custom->rowCount() < 1) return;
-      $member_custom_data = $member_custom->fetch(PDO::FETCH_ASSOC);
+    // Schema data
+    $activeSchema = DB::getInstance()->query('select structure from ' . $table . ' where status =  1');
+    $activeSchemaData = $activeSchema->fetchObject();
+    if ($activeSchemaData === false) $activeSchemaData = null;
+    $structure = json_decode($activeSchemaData?->structure, true)??[];
+    
+    foreach ($structure as $item) {
+        if ($item['field'] === 'advance') {
+            $field = explode(',', $item['advfield']);
+            $dbfield = $field[0]??'uknown';
 
-      // Schema data
-      $activeSchema = DB::getInstance()->query('select structure from ' . $table . ' where status =  1');
-      $activeSchemaData = $activeSchema->fetchObject();
-      $structure = json_decode($activeSchemaData->structure, true);
-      
-      foreach ($structure as $item) {
-          if ($item['field'] === 'advance') {
-              $field = explode(',', $item['advfield']);
-              $dbfield = $field[0]??'uknown';
+            if (!isset($member_custom_data[$dbfield])) continue;
 
-              if (!isset($member_custom_data[$dbfield])) continue;
+            switch ($item['advfieldtype']) {
+                case 'enum':
+                    $list = array_map(fn($item) => [$item, $item], array_filter(explode('|',$field[1])));
+                    $form->addSelectList('advfield[' . $dbfield . ']', $item['name'], $list, $member_custom_data[$dbfield]??'','class="form-control col-4"');
+                    break;
 
-              switch ($item['advfieldtype']) {
-                  case 'enum':
-                      $list = array_map(fn($key) => [$key, $field[1][$key]], array_keys($field[1]));
-                      $form->addSelectList('advfield[' . $dbfield . ']', $item['name'], $list, $member_custom_data[$dbfield]??'','class="form-control col-4"');
-                      break;
+                case 'enum_radio':
+                    $list = array_map(fn($item) => [$item,$item], array_filter(explode('|', trim($field[1]))));
+                    $value = $member_custom_data[$dbfield]??'';
+                    $form->addRadio('advfield[' . $dbfield . ']', $item['name'], $list, !empty($value)?$value:'0');
+                    break;
 
-                  case 'enum_radio':
-                      $list = array_map(fn($item) => [$item,$item], array_filter(explode('|', trim($field[1]))));
-                      $value = $member_custom_data[$dbfield]??'';
-                      $form->addRadio('advfield[' . $dbfield . ']', $item['name'], $list, !empty($value)?$value:'0');
-                      break;
+                case 'text_multiple':
+                    $data = array_filter(explode('|', trim($field[1])));
 
-                  case 'text_multiple':
-                      $data = array_filter(explode('|', trim($field[1])));
+                    $list = [];
+                    foreach ($data as $key => $value) {
+                        $list[] = [$value, $value];
+                    }
 
-                      $list = [];
-                      foreach ($data as $key => $value) {
-                          $list[] = [$value, $value];
-                      }
+                    $form->addCheckBox('advfield[' . $dbfield . ']', $item['name'], $list, json_decode($member_custom_data[$dbfield]??'', true)??[],' class="form-control"');
+                    break;
 
-                      $form->addCheckBox('advfield[' . $dbfield . ']', $item['name'], $list, json_decode($member_custom_data[$dbfield]??'', true)??[],' class="form-control"');
-                      break;
-
-                  case 'text':
-                      $form->addTextField('text', 'advfield[' . $dbfield . ']', $item['name'], $member_custom_data[$dbfield], 'class="form-control"');
-                      break;
-                  case 'int':
-                  case 'varchar':
-                  default:
-                      $form->addTextField('text', 'advfield[' . $dbfield . ']', $item['name'], $member_custom_data[$dbfield], 'class="form-control"');
-                      break;
-              }
-          }
-      }
+                case 'text':
+                    $form->addTextField('text', 'advfield[' . $dbfield . ']', $item['name'], $member_custom_data[$dbfield], 'class="form-control"');
+                    break;
+                case 'int':
+                case 'varchar':
+                default:
+                    $form->addTextField('text', 'advfield[' . $dbfield . ']', $item['name'], $member_custom_data[$dbfield], 'class="form-control"');
+                    break;
+            }
+        }
     }
+    
 
     // member is_pending
     $form->addCheckBox('isPending', __('Pending Membership'), array( array('1', __('Yes')) ), $rec_d['is_pending']??'');

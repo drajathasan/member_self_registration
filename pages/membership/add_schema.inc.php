@@ -319,6 +319,10 @@ echo $form->printOut();
     $(document).ready(function(){
         let editorInstance = '';
 
+        $('#mainForm').submit(function() {
+            top.toastr.info('Tunggu hingga proses selesai','Info'); 
+        })
+
         DecoupledEditor
             .create(document.querySelector('#contentDesc'),{  
                 toolbar: ['heading','bold','italic','link','numberedList','bulletedList']

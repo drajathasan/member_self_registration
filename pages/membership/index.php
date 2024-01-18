@@ -74,7 +74,7 @@ if (isset($_POST['schema_id']) && isset($_POST['action']) && $_POST['action'] ==
     }, $advanceOnly);
 
     // Drop column from member custom
-    foreach($fieldsToDrop as $column) Schema::dropColumn('member_custom', 'adv_' . $column);
+    foreach($fieldsToDrop as $column) Schema::dropColumn('member_custom', $column);
     exit;
 }
 

@@ -25,6 +25,7 @@ $plugin = Plugins::getInstance();
 // registering menus
 $plugin->registerMenu('membership', 'Daftar Online', __DIR__ . '/pages/membership/index.php');
 
+// Get active schema from database
 if (Schema::hasTable($table = 'self_registration_schemas')) {
     $activeSchema = DB::getInstance()->query('select id,name from ' . $table . ' where status =  1');
 

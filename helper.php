@@ -85,7 +85,7 @@ if (!function_exists('formGenerator'))
             }
         } else {
             if ($opac !== null) $opac->page_title = $info->title;
-            echo '<div class="alert alert-info"' . strip_tags($info->desc, '<p><a><i><em><h1><h2><h3><ul><ol><li>') . '</div>';
+            echo '<div class="alert alert-info">' . strip_tags($info->desc, '<p><a><i><em><h1><h2><h3><ul><ol><li>') . '</div>';
         }
 
         foreach ($structure as $key => $column) {
