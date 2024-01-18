@@ -5,6 +5,7 @@
  * @File name           : index.php
  */
 use SLiMS\DB;
+use SLiMS\Plugins;
 use SLiMS\Table\Schema;
 
 defined('INDEX_AUTH') OR die('Direct access not allowed!');
@@ -86,10 +87,15 @@ if (isset($_POST['schema_id']) && isset($_POST['action']) && $_POST['action'] ==
 }
 
 if (isset($_POST['acc']) && $activeSchema->rowCount() > 0) {
+
+    $member_id = $_POST['form']['member_id']??0;
+    Plugins::getInstance()->execute('member_self_before_acc', ['member_id' => $member_id]);
+
     $schema = $activeSchema->fetchObject();
     $baseTable = 'self_registration_' . trim(strtolower(str_replace(' ', '_', $schema->name)));
+
     $data = DB::getInstance()->prepare('select * from ' . $baseTable . ' where member_id = ?');
-    $data->execute([$_GET['member_id']??0]);
+    $data->execute([$member_id]);
 
     if ($data->rowCount() < 1) {
         redirect()->back();
@@ -100,23 +106,28 @@ if (isset($_POST['acc']) && $activeSchema->rowCount() > 0) {
     $result_customs = [];
 
     $columnNames = array_keys($result);
-    foreach ($columnNames as $key => $value) {
-        $newValue = $_POST['form'][$key + 1]??'';
+    foreach ($columnNames as $columnName) {
+        $newValue = $_POST['form'][$columnName]??'';
 
-        if (substr($value, 0,4) === 'adv_') {
-            $result_customs[$value] = $newValue;
-            unset($result[$value]);
+        if (is_array($newValue)) $newValue = json_encode($newValue);
+
+        if (substr($columnName, 0,4) === 'adv_') {
+            if (!isset($result_customs['member_id'])) {
+                $result_customs['member_id'] = $member_id;
+            }
+            $result_customs[$columnName] = $newValue;
+            unset($result[$columnName]);
             continue;
         }
 
-        if ($value === 'mpasswd' && !empty($newValue)) {
-            $_POST['form'][$key + 1] = password_hash($newValue, PASSWORD_BCRYPT);
+        if ($columnName === 'mpasswd' && !empty($newValue)) {
+            $_POST['form'][$columnName] = password_hash($newValue, PASSWORD_BCRYPT);
         }
 
         if (empty($newValue)) continue;
         if (is_array($newValue)) $newValue = json_encode($newValue);
 
-        $result[$value] = $newValue;
+        $result[$columnName] = $newValue;
     }
 
     $result['input_date'] = $result['created_at'];
@@ -140,8 +151,6 @@ if (isset($_POST['acc']) && $activeSchema->rowCount() > 0) {
         }
     }
 
-    dd(array_keys($result), array_values($result));
-
     $columns = implode(',', array_map(function($column) {
         return '`' . $column . '` = ?';
     }, array_keys($result)));
@@ -154,13 +163,33 @@ if (isset($_POST['acc']) && $activeSchema->rowCount() > 0) {
 
     $process = $insert->execute(array_values($result));
 
+    if (count($result_customs) && $process) {
+        $column_customs = implode(',', array_map(function($column) {
+            return '`' . $column . '` = ?';
+        }, array_keys($result_customs)));
+
+        $insert_custom = DB::getInstance()->prepare(<<<SQL
+        insert ignore 
+                into `member_custom`
+                    set {$column_customs}
+        SQL);
+
+        $process_custom = $insert_custom->execute(array_values($result_customs));
+    }
+
     if ($process) {
+        
+        if (isset($process_custom) && $process_custom == false) {
+            toastr('Gagal menyimpan data custom')->success();
+        }
+        
         toastr('Data berhasil disimpan')->success();
         echo '<script>top.jQuery.colorbox.close();</script>';
 
         // delete data
         $delete = DB::getInstance()->prepare('delete from ' . $baseTable . ' where member_id = ?');
-        $delete->execute([$_POST['form'][1]]);
+        $delete->execute([$member_id]);
+        
         echo '<script>top.jQuery.colorbox.close();</script>';
         redirect()->simbioAJAX(pluginUrl(reset: true));
     }

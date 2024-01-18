@@ -89,6 +89,14 @@ if (!function_exists('formGenerator'))
         }
 
         foreach ($structure as $key => $column) {
+            if (strpos($actionUrl, 'admin') == true) { 
+                if (empty($column['advfield'])) {
+                    $key = $column['field'];
+                } else {
+                    $advfield = explode(',', $column['advfield']);
+                    $key = $advfield[0];
+                }
+            }
             echo <<<HTML
             <div class="my-3">
                 <label class="form-label"><strong>{$column['name']}</strong></label>

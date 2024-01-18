@@ -33,3 +33,10 @@ if (Schema::hasTable($table = 'self_registration_schemas')) {
         $plugin->registerMenu('opac', $data->name, __DIR__ . DS . 'pages' . DS . 'opac' . DS . 'index.php');
     }
 }
+
+$plugin->register(Plugins::MEMBERSHIP_INIT, function()  use($table) {
+    global $member_custom_fields, $can_read, $can_write, $sysconf, $dbs;
+
+    include __DIR__ . '/pages/customs/membership/index.php';
+    exit;
+});
