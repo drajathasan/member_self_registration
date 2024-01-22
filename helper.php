@@ -12,6 +12,21 @@ if (!function_exists('getActiveSchemaData'))
     }
 }
 
+if (!function_exists('action')) {
+    function action(string $actionName, array $attribute = [])
+    {
+        extract($attribute);
+        $trace = debug_backtrace(limit: 1);
+        $info = pathinfo(array_pop($trace)['file']);
+        
+        if (file_exists($path = $info['dirname'] . DS . 'action' . DS . basename($actionName) . '.php')) {
+            include $path;
+        } else {
+            throw new Exception('Action ' . $actionName . ' is not found!', 404);
+        }
+    }
+}
+
 
 if (!function_exists('pluginUrl'))
 {
@@ -56,6 +71,15 @@ if (!function_exists('textColor')) {
 
 if (!function_exists('formGenerator'))
 {
+    /**
+     * Form generator based on schema
+     *
+     * @param [type] $data
+     * @param array $record
+     * @param string $actionUrl
+     * @param [type] $opac
+     * @return void
+     */
     function formGenerator($data, $record = [], $actionUrl = '', $opac = null)
     {
         $structure = json_decode($data->structure, true);
@@ -64,17 +88,20 @@ if (!function_exists('formGenerator'))
 
         ob_start();
 
+        // Start form
         $js = '';
         $withUpload = '';
         if (($option?->image??false)) $withUpload = 'enctype="multipart/form-data"';
 
         echo '<form id="self_member" method="POST" action="' . $actionUrl . '" ' . $withUpload . '>';
 
+        // set error
         if ($key = flash()->includes('self_regis_error'))
         {
             flash()->danger($key);
         }
 
+        // set action url
         if ($actionUrl === '' || stripos($actionUrl, 'admin') !== false) {
             if ($actionUrl === '') {
                 echo '<h3>Pratinjau</h3>';
@@ -88,7 +115,9 @@ if (!function_exists('formGenerator'))
             echo '<div class="alert alert-info">' . strip_tags($info->desc, '<p><a><i><em><h1><h2><h3><ul><ol><li>') . '</div>';
         }
 
+        // Generate form structure
         foreach ($structure as $key => $column) {
+            // Convert key to fieldname
             if (strpos($actionUrl, 'admin') == true) { 
                 if (empty($column['advfield'])) {
                     $key = $column['field'];
@@ -97,20 +126,26 @@ if (!function_exists('formGenerator'))
                     $key = $advfield[0];
                 }
             }
+
+            // Set label element
             echo <<<HTML
             <div class="my-3">
                 <label class="form-label"><strong>{$column['name']}</strong></label>
             HTML;
 
+            // Get default value
             $defaultValue = $record[$column['field']]??$record[$column['advfield']]??'';
 
+            // special condition of some field type
             if (in_array($column['advfieldtype'], ['enum','enum_radio','text_multiple'])) {
                 list($name, $detail) = explode(',', $column['advfield']);
                 $defaultValue = $record[$name]??'';
             }
 
+            // determine mandatory of the element
             $is_required = $column['is_required'] === true ? ' required' : '';
     
+            // set html form element based on database field
             switch ($column['field']) {
                 case 'mpasswd':
                     if ($actionUrl !== '') {
@@ -153,9 +188,11 @@ if (!function_exists('formGenerator'))
                     echo '</select>';
                     break;
                 
+                // Advance field element
                 case 'advance':
-                    // dump($column['advfieldtype']);
                     switch ($column['advfieldtype']) {
+
+                        // short text field
                         case 'varchar':
                         case 'int':
                             $types = ['varchar' => 'text', 'int' => 'number'];
@@ -165,12 +202,14 @@ if (!function_exists('formGenerator'))
                             HTML;
                             break;
 
+                        // long text
                         case 'text':
                             echo <<<HTML
                             <textarea name="form[{$key}]" placeholder="masukan {$column['name']} anda" class="form-control" {$is_required}>{$defaultValue}</textarea>
                             HTML;
                             break;
                         
+                        // select list
                         case 'enum':
                             list($field,$list) = explode(',', $column['advfield']);
                             echo '<select name="form[' . $key . ']" class="form-control" '.$defaultValue.'>';
@@ -184,6 +223,7 @@ if (!function_exists('formGenerator'))
                             echo '</select>';
                             break;
 
+                        // Select list as radio button
                         case 'enum_radio':
                             $field = explode(',', $column['advfield']);
                             $uniqueId = md5($field[0]);
@@ -210,6 +250,8 @@ if (!function_exists('formGenerator'))
                             }
                             echo '</div>';
                             break;
+
+                        // multiple choise data
                         case 'text_multiple':
                             $field = explode(',', $column['advfield']);
                             $uniqueId = md5($field[0]);
@@ -241,6 +283,7 @@ if (!function_exists('formGenerator'))
                     }
                     break;
 
+                //  image cover
                 case 'member_image':
                     if (($option?->image??null) === null) {
                         echo '<div class="alert alert-info font-weight-bold">Anda belum mengantur ruas ini pada "Pengaturan Form"</div>';
@@ -257,6 +300,7 @@ if (!function_exists('formGenerator'))
                     }
                     break;
 
+                // lets generate as inptu type text or date or email
                 default:
                     $types = ['birth_date' => 'date', 'member_email' => 'email'];
                     $type = isset($types[$column['field']]) ? $types[$column['field']] : 'text';
@@ -270,10 +314,13 @@ if (!function_exists('formGenerator'))
             </div>
             HTML;
         }
+
+        // set form action url
         if ($actionUrl !== '') {
             // Captcha initialize
             $captcha = Captcha::section('memberarea');
 
+            // public area
             if (strpos($actionUrl, 'admin') === false) {
                 if (($option?->captcha??false) && $captcha->isSectionActive()) 
                 {
@@ -284,17 +331,21 @@ if (!function_exists('formGenerator'))
     
                 echo \Volnix\CSRF\CSRF::getHiddenInputString();
                 echo '<div class="form-group">
+                    <input type="hidden" name="action" value="save"/>
                     <button class="btn btn-primary" type="submit" name="save">Daftar</button>
                     <button class="btn btn-outline-secondary" type="reset" name="save">Batal</button>
                 </div>';
             } else {
                 echo '<div class="form-group">
+                    <input type="hidden" name="action" value="acc"/>
                     <button class="btn btn-success" type="submit" name="acc">Setujui</button>
                     <a class="btn btn-danger" href="' .  pluginUrl(['section' => 'view_detail', 'member_id' => $_GET['member_id']??0, 'headless' => 'yes', 'action' => 'delete_reg']) . '">Hapus</a>
                 </div>';
             }
         }
         echo '</form>';
+
+        // Custom JS
         if (!empty($js) && strpos($actionUrl, 'admin') === false) {
             echo <<<HTML
             <script>

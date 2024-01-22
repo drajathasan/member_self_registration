@@ -30,11 +30,16 @@ if ($schemas->rowCount() < 1) {
         $result->status = $result->status == 0 ? 'Aktifkan' : 'Non-Aktifkan';
         $previewUrl = pluginUrl(['headless' => 'yes', 'schema_id' => $result->id, 'section' => 'form_preview']);
         $deleteUrl = pluginUrl(['headless' => 'yes', 'section' => 'list']);
+        $exportUrl = pluginUrl(['action' => 'export', 'schema_id' => $result->id]);
         echo <<<HTML
         <div class="card col-4">
             <div class="card-img-top rounded-lg" style="background-color: #{$bgColor}; color: #{$fnColor}; height: 20px"></div>
             <div class="card-body">
-                <h5 class="card-title font-weight-bold">{$result->name}</h5>
+                <div class="d-flex justify-content-between">
+                    <h5 class="card-title font-weight-bold">{$result->name}</h5>
+                    <a href="{$exportUrl}" target="blindSubmit" title="Ekspor skema" class="btn btn-outline-info">Ekspor</a>
+
+                </div>
                 <p class="card-text d-flex flex-column">
                     <label><strong>Judul Form</strong></label>
                     {$info->title}
@@ -72,7 +77,7 @@ if ($schemas->rowCount() < 1) {
             let uid = $(this).data('uid')
             if (this.checked === false) uid = 0
 
-            $.post('{$actionUrl}', {schema_id:uid, action: 'activate'}, function(){
+            $.post('{$actionUrl}', {schema_id:uid, action: 'active_schema'}, function(){
                 setTimeout(() => {
                     $('#mainContent').simbioAJAX('{$url}')
                 }, 1000);
@@ -87,7 +92,7 @@ if ($schemas->rowCount() < 1) {
                 return
             }
 
-            $.post('{$actionUrl}', {schema_id: $(this).data('uid'), action: 'delete'}, function() {
+            $.post('{$actionUrl}', {schema_id: $(this).data('uid'), action: 'drop_schema'}, function() {
                 $('#mainContent').simbioAJAX('{$url}')
             })
         })

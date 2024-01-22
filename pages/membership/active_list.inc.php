@@ -1,4 +1,8 @@
 <?php
+use SLiMS\Plugins;
+
+defined('INDEX_AUTH') or die('Direct access is not allowed!');
+
 // create datagrid
 $datagrid = new simbio_datagrid();
 
@@ -38,6 +42,15 @@ $datagrid->table_header_attr = 'class="dataListHeader thead-dark" style="font-we
 // set delete proccess URL
 $datagrid->chbox_form_URL = pluginUrl(reset: true);
 $datagrid->column_width = ['10%', '10%'];
+
+Plugins::getInstance()->execute('member_self_before_datagrid', [
+    'datagrid' => $datagrid
+]);
+
+if (isset($_GET['keywords'])) {
+    $keywords = $dbs->escape_string($_GET['keywords']);
+    $datagrid->setSQLCriteria('(member_id like \'%' . $keywords . '%\' or member_name like \'%' . $keywords . '%\')');
+}
 
 // put the result into variables
 $datagrid_result = $datagrid->createDataGrid($dbs, $table_spec, 10, false);

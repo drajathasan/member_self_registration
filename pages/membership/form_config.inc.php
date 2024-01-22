@@ -1,4 +1,7 @@
 <?php
+
+defined('INDEX_AUTH') or die('Direct access is not allowed!');
+
 $data = $activeSchema->fetchObject();
 $option = json_decode($data->option??'');
 
@@ -10,6 +13,7 @@ $form->table_attr = 'id="dataList" cellpadding="0" cellspacing="0"';
 $form->table_header_attr = 'class="alterCell"';
 $form->table_content_attr = 'class="alterCell2"';
 
+$form->addHidden('action', 'form_config');
 $form->addHidden('schema_id', $data?->id??'');
 
 $list = [];

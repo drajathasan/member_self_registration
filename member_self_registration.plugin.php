@@ -35,6 +35,7 @@ if (Schema::hasTable($table = 'self_registration_schemas')) {
     }
 }
 
+// Overriding membership page
 $plugin->register(Plugins::MEMBERSHIP_INIT, function()  use($table) {
     global $member_custom_fields, $can_read, $can_write, $sysconf, $dbs;
 
