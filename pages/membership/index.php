@@ -44,7 +44,8 @@ $action = $_POST['action']??$_GET['action']??null;
 
 // route list
 $routes = [
-    'export' => ['schemaById' => $schemaById],
+    'import_schema' => [],
+    'export_schema' => ['schemaById' => $schemaById],
     'create_schema' => [],
     'active_schema' => [],
     'form_config' => [],
@@ -55,7 +56,6 @@ $routes = [
 ];
 
 $params = $routes[$action]??null;
-
 if ($params !== null) action($action, $params);
 /*---- End of Http Request Process ----*/
 
@@ -75,7 +75,15 @@ if (!isset($_GET['headless'])) {
             </form>
             <div class="btn-group">
                 <?php if ($activeSchema->rowCount() < 1): ?>
-                    <a href="<?= pluginUrl(['section' => 'add_schema']) ?>" class="btn btn-outline-secondary" ><i class="fa fa-plus"></i> Tambah Skema Baru</a>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">
+                            <i class="fa fa-file"></i> Skema Baru
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="<?= pluginUrl(['section' => 'add_schema']) ?>"><i class="fa fa-plus"></i> Tambah</a>
+                            <a class="dropdown-item openPopUp notAJAX" title="Impor" href="<?= pluginUrl(['section' => 'import_schema', 'headless' => 'yes']) ?>"><i class="fa fa-download"></i> Impor</a>
+                        </div>
+                    </div>
                 <?php else: ?>
                     <?php
                     $activeSchemaData = getActiveSchemaData();
@@ -87,7 +95,15 @@ if (!isset($_GET['headless'])) {
                     <?php if ($section !== 'list'): ?>
                     <a href="<?= pluginUrl(['section' => 'list']) ?>" class="btn btn-outline-secondary"><i class="fa fa-list"></i> Daftar Skema</a>
                     <?php elseif ($section === 'list'): ?>
-                    <a href="<?= pluginUrl(['section' => 'add_schema']) ?>" class="btn btn-outline-secondary" ><i class="fa fa-plus"></i> Tambah Skema Baru</a>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">
+                            <i class="fa fa-file"></i> Skema Baru
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="<?= pluginUrl(['section' => 'add_schema']) ?>"><i class="fa fa-plus"></i> Tambah</a>
+                            <a class="dropdown-item openPopUp notAJAX" title="Impor" href="<?= pluginUrl(['section' => 'import_schema', 'headless' => 'yes']) ?>"><i class="fa fa-download"></i> Impor</a>
+                        </div>
+                    </div>
                     <?php endif; ?>
                 <?php endif; ?>
             </div>

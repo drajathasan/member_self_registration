@@ -7,7 +7,10 @@ if ($schemas->rowCount() < 1) {
         <img src="<?= MSWB ?>static/images/notfound.png"/ style="width: 250px">
         <h4 class="font-weight-bold mt-2">Yah</h4>
         <p>Belum ada skema</p>
-        <a href="<?= pluginUrl(['section' => 'add_schema']) ?>" class="btn btn-outline-primary">Buat Yuk</a>
+        <div class="d-flex flex-row">
+            <a href="<?= pluginUrl(['section' => 'add_schema']) ?>" class="btn btn-outline-primary">Buat Yuk</a>&nbsp;
+            <a href="<?= pluginUrl(['section' => 'import_schema', 'headless' => 'yes']) ?>" class="btn btn-outline-secondary notAJAX openPopUp">Impor Aja</a>
+        </div>
     </div>
 <?php
 } else {
@@ -30,7 +33,7 @@ if ($schemas->rowCount() < 1) {
         $result->status = $result->status == 0 ? 'Aktifkan' : 'Non-Aktifkan';
         $previewUrl = pluginUrl(['headless' => 'yes', 'schema_id' => $result->id, 'section' => 'form_preview']);
         $deleteUrl = pluginUrl(['headless' => 'yes', 'section' => 'list']);
-        $exportUrl = pluginUrl(['action' => 'export', 'schema_id' => $result->id]);
+        $exportUrl = pluginUrl(['action' => 'export_schema', 'schema_id' => $result->id]);
         echo <<<HTML
         <div class="card col-4">
             <div class="card-img-top rounded-lg" style="background-color: #{$bgColor}; color: #{$fnColor}; height: 20px"></div>
