@@ -25,7 +25,6 @@ echo <<<HTML
         const file = event.target.files[0]
         const reader = new FileReader()
         reader.onload = function() {
-            alert('Hai')
             const contents = reader.result
             document.querySelector('input[name="import_raw_json"]').value = contents
         }
