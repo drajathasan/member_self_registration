@@ -50,7 +50,10 @@ $memberSchema = Schema::table('member')->columns($detail = true);
 Plugins::getInstance()->execute('member_self_before_create_schema', [
     'memberSchema' => $memberSchema,
     'mysqlColumnType' => $mysqlColumnType,
-    'slimsSchemaColumnType' => $slimsSchemaColumnType
+    'slimsSchemaColumnType' => $slimsSchemaColumnType,
+    'newTable' => $newTable,
+    'structure' => $structure,
+    'hadCustomTable' => $hadCustomTable
 ]);
 
 

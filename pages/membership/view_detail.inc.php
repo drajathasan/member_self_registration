@@ -1,8 +1,12 @@
 <?php
+use SLiMS\Plugins;
 defined('INDEX_AUTH') or die('Direct access is not allowed!');
 
 $schema = $activeSchema->fetchObject();
 $table_name = strtolower(trim(str_replace(' ', '_', $schema->name)));
+
+Plugins::getInstance()->execute('member_self_before_preview_detail', ['schema' => $schema, 'table_name' => $table_name]);
+
 $record = \SLiMS\DB::getInstance()->prepare('select * from self_registration_' . $table_name . ' where member_id = ?');
 $record->execute([$_GET['member_id']]);
 

@@ -109,13 +109,15 @@ if (isset($_POST['form'])) {
         $sqlSet[] = '`created_at` = now()';
         $query = $sqlRaw . implode(',', $sqlSet);
 
-        Plugins::getInstance()->execute('member_self_before_save', ['query' => $query, 'params' => $sqlParams]);
+        Plugins::getInstance()->execute('member_self_before_save', ['query' => $query, 'sqlParams' => $sqlParams]);
 
-        $insert = DB::getInstance()->prepare($query);
-        $insert->execute($sqlParams);
+        if (!defined('MSRPLUS_BYPASS_INSERT')) {
+            $insert = DB::getInstance()->prepare($query);
+            $insert->execute($sqlParams);
 
-        if ($insert->rowCount() == 0) throw new Exception('Data tidak berhasil disimpan, mungkin karena data sudah ada.');
-        
+            if ($insert->rowCount() == 0) throw new Exception('Data tidak berhasil disimpan, mungkin karena data sudah ada.');
+        }
+
         if ($option?->message_after_save??false) toastr($option->message_after_save)->jsAlert();
 
     } catch (Exception $e) {

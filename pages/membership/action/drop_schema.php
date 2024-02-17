@@ -6,7 +6,9 @@ use SLiMS\Table\Schema;
 defined('INDEX_AUTH') or die('Direct access is not allowed');
 
 // Run hook before droping schema
-Plugins::getInstance()->execute('member_self_before_drop_schema');
+Plugins::getInstance()->execute('member_self_before_drop_schema', [
+    'schemaById' => $schemaById,
+]);
 
 // Fetch active schema
 $schemaById->execute([$_POST['schema_id']]);
