@@ -24,6 +24,7 @@ while ($schemaData = $schemas->fetchObject()) {
 
 $form->addSelectList('form_config[image]', '<strong>Unggah Foto Profil?</strong>', [[0, __('Disable')],[1, __('Enable')]], $option?->image??'', 'rows="1" class="imageWarning form-control col-2"');
 $form->addSelectList('form_config[captcha]', '<strong>Menggunakan Re-Captcha?</strong>', [[0, __('Disable')],[1, __('Enable')]], $option?->captcha??'', 'rows="1" class="form-control col-2"');
+$form->addSelectList('form_config[with_agreement]', '<strong>Menyimpan Data Setelah menyetujui syarat?</strong>', [[0, __('No')],[1, __('Yes')]], $option?->with_agreement??0, 'rows="1" class="form-control col-2"');
 $form->addTextField('textarea', 'form_config[message_after_save]', '<strong>Pesean Setelah Registrasi</strong>', $option?->message_after_save??'', 'rows="1" style="height: 80px" class="form-control"');
 
 echo $form->printOut();

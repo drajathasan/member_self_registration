@@ -112,10 +112,18 @@ if (isset($_POST['saveData']) AND $can_read AND $can_write) {
         }
 
         if (isset($_POST['advfield'])) {
-          $custom_data = array_merge($custom_data, array_map(function($item) {
+          $custom_data = array_merge($custom_data??[], array_map(function($item) {
             if (is_array($item)) return json_encode($item);
             return $item;
           }, $_POST['advfield']));
+          
+          foreach ($_SESSION['advfield'] as $column) {
+            if (!isset($custom_data[$column])) {
+              $custom_data[$column] = '';
+            }
+          }
+
+          unset($_SESSION['advfield']);
         }
 
         $data['member_id'] = $dbs->escape_string($memberID);
@@ -524,33 +532,33 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
         if (is_array($member_custom_fields) && $member_custom_fields) {
             foreach ($member_custom_fields as $fid => $cfield) {
 
-            // custom field properties
-            $cf_dbfield = $cfield['dbfield'];
-            $cf_label = $cfield['label'];
-            $cf_default = $cfield['default'];
-            $cf_class = $cfield['class']??'';
-            $cf_data = (isset($cfield['data']) && $cfield['data'] )?unserialize($cfield['data']):array();
+              // custom field properties
+              $cf_dbfield = $cfield['dbfield'];
+              $cf_label = $cfield['label'];
+              $cf_default = $cfield['default'];
+              $cf_class = $cfield['class']??'';
+              $cf_data = (isset($cfield['data']) && $cfield['data'] )?unserialize($cfield['data']):array();
 
-            // get data field record
-            if(isset($rec_cust_d[$cf_dbfield]) && @unserialize($rec_cust_d[$cf_dbfield]) !== false){
-              $rec_cust_d[$cf_dbfield] = unserialize($rec_cust_d[$cf_dbfield]);
-            }
+              // get data field record
+              if(isset($rec_cust_d[$cf_dbfield]) && @unserialize($rec_cust_d[$cf_dbfield]) !== false){
+                $rec_cust_d[$cf_dbfield] = unserialize($rec_cust_d[$cf_dbfield]);
+              }
 
-            // custom field processing
-            if (in_array($cfield['type'], array('text', 'longtext', 'numeric'))) {
-              $cf_max = isset($cfield['max'])?$cfield['max']:'200';
-              $cf_width = isset($cfield['width'])?$cfield['width']:'50';
-              $form->addTextField( ($cfield['type'] == 'longtext')?'textarea':'text', $cf_dbfield, $cf_label, $rec_cust_d[$cf_dbfield]??$cf_default, ' class="form-control '.$cf_class.'" style="width: '.$cf_width.'%;" maxlength="'.$cf_max.'"');
-            } else if ($cfield['type'] == 'dropdown') {
-              $form->addSelectList($cf_dbfield, $cf_label, $cf_data, $rec_cust_d[$cf_dbfield]??$cf_default,' class="form-control '.$cf_class.'"');
-            } else if ($cfield['type'] == 'checklist') {
-              $form->addCheckBox($cf_dbfield, $cf_label, $cf_data, $rec_cust_d[$cf_dbfield]??$cf_default,' class="form-control '.$cf_class.'"');
-            } else if ($cfield['type'] == 'choice') {
-              $form->addRadio($cf_dbfield, $cf_label, $cf_data, $rec_cust_d[$cf_dbfield]??$cf_default,' class="form-control '.$cf_class.'"');
-            } else if ($cfield['type'] == 'date') {
-              $form->addDateField($cf_dbfield, $cf_label, $rec_cust_d[$cf_dbfield]??$cf_default,' class="form-control '.$cf_class.'"');
-            }
-            unset($cf_data);
+              // custom field processing
+              if (in_array($cfield['type'], array('text', 'longtext', 'numeric'))) {
+                $cf_max = isset($cfield['max'])?$cfield['max']:'200';
+                $cf_width = isset($cfield['width'])?$cfield['width']:'50';
+                $form->addTextField( ($cfield['type'] == 'longtext')?'textarea':'text', $cf_dbfield, $cf_label, $rec_cust_d[$cf_dbfield]??$cf_default, ' class="form-control '.$cf_class.'" style="width: '.$cf_width.'%;" maxlength="'.$cf_max.'"');
+              } else if ($cfield['type'] == 'dropdown') {
+                $form->addSelectList($cf_dbfield, $cf_label, $cf_data, $rec_cust_d[$cf_dbfield]??$cf_default,' class="form-control '.$cf_class.'"');
+              } else if ($cfield['type'] == 'checklist') {
+                $form->addCheckBox($cf_dbfield, $cf_label, $cf_data, $rec_cust_d[$cf_dbfield]??$cf_default,' class="form-control '.$cf_class.'"');
+              } else if ($cfield['type'] == 'choice') {
+                $form->addRadio($cf_dbfield, $cf_label, $cf_data, $rec_cust_d[$cf_dbfield]??$cf_default,' class="form-control '.$cf_class.'"');
+              } else if ($cfield['type'] == 'date') {
+                $form->addDateField($cf_dbfield, $cf_label, $rec_cust_d[$cf_dbfield]??$cf_default,' class="form-control '.$cf_class.'"');
+              }
+              unset($cf_data);
             }
         }
     }
@@ -559,7 +567,6 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
     $member_custom = DB::getInstance()->prepare('select * from member_custom where member_id = ?');
     $member_custom->execute([$_POST['itemID']??0]);
 
-    if ($member_custom->rowCount() < 1) return;
     $member_custom_data = $member_custom->fetch(PDO::FETCH_ASSOC);
 
     // Schema data
@@ -567,44 +574,48 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
     $activeSchemaData = $activeSchema->fetchObject();
     if ($activeSchemaData === false) $activeSchemaData = null;
     $structure = json_decode($activeSchemaData?->structure, true)??[];
-    
+
     foreach ($structure as $item) {
         if ($item['field'] === 'advance') {
-            $field = explode(',', $item['advfield']);
+            $field = explode(',', $item['advfield']??'');
             $dbfield = $field[0]??'uknown';
 
-            if (!isset($member_custom_data[$dbfield])) continue;
+            if ($form->edit_mode) {
+              $_SESSION['advfield'][] = $dbfield;
+            }
 
-            switch ($item['advfieldtype']) {
+            // if (!isset($member_custom_data[$dbfield])) continue;
+
+            switch ($item['advfieldtype']??'') {
                 case 'enum':
-                    $list = array_map(fn($item) => [$item, $item], array_filter(explode('|',$field[1])));
-                    $form->addSelectList('advfield[' . $dbfield . ']', $item['name'], $list, $member_custom_data[$dbfield]??'','class="form-control col-4"');
+                    $list = array_map(fn($item) => [$item, $item], array_filter(explode('|',$field[1]??'')));
+                    $form->addSelectList('advfield[' . $dbfield . ']', $item['name']??'', $list, $member_custom_data[$dbfield]??'','class="form-control col-4"');
                     break;
 
                 case 'enum_radio':
-                    $list = array_map(fn($item) => [$item,$item], array_filter(explode('|', trim($field[1]))));
+                    $list = array_map(fn($item) => [$item,$item], array_filter(explode('|', trim($field[1]??''))));
                     $value = $member_custom_data[$dbfield]??'';
-                    $form->addRadio('advfield[' . $dbfield . ']', $item['name'], $list, !empty($value)?$value:'0');
+                    $form->addRadio('advfield[' . $dbfield . ']', $item['name']??'', $list, !empty($value)?$value:'0');
                     break;
 
                 case 'text_multiple':
-                    $data = array_filter(explode('|', trim($field[1])));
+                    $data = array_filter(explode('|', trim($field[1]??'')));
 
                     $list = [];
                     foreach ($data as $key => $value) {
                         $list[] = [$value, $value];
                     }
 
-                    $form->addCheckBox('advfield[' . $dbfield . ']', $item['name'], $list, json_decode($member_custom_data[$dbfield]??'', true)??[],' class="form-control"');
+                    $form->addCheckBox('advfield[' . $dbfield . ']', $item['name']??'', $list, json_decode($member_custom_data[$dbfield]??'', true)??[],' class="form-control"');
                     break;
 
                 case 'text':
-                    $form->addTextField('text', 'advfield[' . $dbfield . ']', $item['name'], $member_custom_data[$dbfield], 'class="form-control"');
+                    $form->addTextField('text', 'advfield[' . $dbfield . ']', $item['name']??'', $member_custom_data[$dbfield]??'', 'class="form-control"');
                     break;
                 case 'int':
                 case 'varchar':
                 default:
-                    $form->addTextField('text', 'advfield[' . $dbfield . ']', $item['name'], $member_custom_data[$dbfield], 'class="form-control"');
+                    $form->addTextField('text', 'advfield[' . $dbfield . ']', $item['name']??'', $member_custom_data[$dbfield]??'', 'class="form-control"');
                     break;
             }
         }

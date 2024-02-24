@@ -5,8 +5,7 @@ use SLiMS\Table\Schema;
 use SLiMS\Table\Grammar\Mysql;
 
 defined('INDEX_AUTH') or die('Direct access is not allowed!');
-
-$new_data = json_decode($_POST['import_raw_json'], true);
+$new_data = json_decode($_POST['import']['raw_json'], true);
 $new_data['updated_at'] = date('Y-m-d H:i:s');
 
 $columns = implode(',', array_map(function($column) {

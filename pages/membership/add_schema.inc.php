@@ -30,8 +30,14 @@ $form->addAnything('<strong>Informasi</strong>', <<<HTML
         <div id="toolbarContainer"></div>
         <div id="contentDesc" class="rounded-lg px-3 noAutoFocus" style="background-color: white; min-height: 200px"></div>
     </div>
+    <label><strong>Letak</strong></label>
+    <select class="form-control col-2" name="info[position]">
+        <option value="top">Atas</option>
+        <option value="bottom">Bawah</option>
+    </select>
 </div>
 HTML);
+
 $form->addAnything('<strong>Struktur</strong>', <<<HTML
 <div class="d-flex flex-column">
     <label><strong>Ruas</strong></label>

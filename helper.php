@@ -112,7 +112,11 @@ if (!function_exists('formGenerator'))
             }
         } else {
             if ($opac !== null) $opac->page_title = $info->title;
-            echo '<div class="alert alert-info">' . strip_tags($info->desc, '<p><a><i><em><h1><h2><h3><ul><ol><li>') . '</div>';
+            $descInfo = '<div class="alert alert-info p-3">' . strip_tags($info->desc, '<p><a><i><em><h1><h2><h3><ul><ol><li>') . '</div>';
+        }
+
+        if ($info->position == 'top' && isset($descInfo)) {
+            echo $descInfo;
         }
 
         // Generate form structure
@@ -127,10 +131,14 @@ if (!function_exists('formGenerator'))
                 }
             }
 
+            // determine mandatory of the element
+            $is_required = $column['is_required'] === true ? ' required' : '';
+
             // Set label element
+            $required_mark = $is_required ? '<em class="text-danger">*</em>' : '';
             echo <<<HTML
             <div class="my-3">
-                <label class="form-label"><strong>{$column['name']}</strong></label>
+                <label class="form-label"><strong>{$column['name']} {$required_mark}</strong></label>
             HTML;
 
             // Get default value
@@ -141,9 +149,6 @@ if (!function_exists('formGenerator'))
                 list($name, $detail) = explode(',', $column['advfield']);
                 $defaultValue = $record[$name]??'';
             }
-
-            // determine mandatory of the element
-            $is_required = $column['is_required'] === true ? ' required' : '';
     
             // set html form element based on database field
             switch ($column['field']) {
@@ -315,6 +320,19 @@ if (!function_exists('formGenerator'))
             HTML;
         }
 
+        if ($info->position == 'bottom' && isset($descInfo)) {
+            echo $descInfo;
+        }
+
+        if ($option?->with_agreement??false) {
+            echo <<<HTML
+            <div>
+                <input type="checkbox" id="iAgree"/>
+                <label for="iAgree" style="cursor: pointer">Saya menyetujui prasyarat diatas</label>
+            </div>
+            HTML;    
+        }
+
         // set form action url
         if ($actionUrl !== '') {
             // Captcha initialize
@@ -330,11 +348,16 @@ if (!function_exists('formGenerator'))
                 }
     
                 echo \Volnix\CSRF\CSRF::getHiddenInputString();
+
+                $disableBeforeAgree = '';
+                if ($option?->with_agreement??false) $disableBeforeAgree = 'disabled';
+
                 echo '<div class="form-group">
                     <input type="hidden" name="action" value="save"/>
-                    <button class="btn btn-primary" type="submit" name="save">Daftar</button>
+                    <button class="btn btn-primary" type="submit" name="save" '.$disableBeforeAgree.' ' . (empty($disableBeforeAgree) ? '' : 'title="Klik \'Saya menyetujui prasyarat diatas\'"') . '>Daftar</button>
                     <button class="btn btn-outline-secondary" type="reset" name="save">Batal</button>
-                </div>';
+                </div>
+                ';
             } else {
                 echo '<div class="form-group">
                     <input type="hidden" name="action" value="acc"/>
@@ -342,14 +365,30 @@ if (!function_exists('formGenerator'))
                     <a class="btn btn-danger" href="' .  pluginUrl(['section' => 'view_detail', 'member_id' => $_GET['member_id']??0, 'headless' => 'yes', 'action' => 'delete_reg']) . '">Hapus</a>
                 </div>';
             }
+            echo '<strong><em class="text-danger">*</em> ) wajib diisi</strong>';
         }
         echo '</form>';
 
         // Custom JS
         if (!empty($js) && strpos($actionUrl, 'admin') === false) {
+            $agreeJs = '';
+            if ($option?->with_agreement??false) {
+                $agreeJs = <<<HTML
+                $('#iAgree').click(function() {
+                    if ($('#iAgree:checked').length < 1) { 
+                        $('button[name="save"]').prop('disabled', true)
+                        $('button[name="save"]').prop('title', 'Klik \'Saya menyetujui prasyarat diatas\'')
+                    } else {
+                        $('button[name="save"]').prop('title', 'Klik untuk menyimpan data')
+                        $('button[name="save"]').prop('disabled', false)
+                    }
+                });
+                HTML;
+            }
             echo <<<HTML
             <script>
                 $(document).ready(function() {
+                    {$agreeJs}
                     $('#self_member').submit(function(evt) {
                         {$js}
                     })

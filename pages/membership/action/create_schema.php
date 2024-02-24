@@ -54,7 +54,10 @@ if (isset($_POST['saveData'])) {
     Plugins::getInstance()->execute('member_self_before_create_schema', [
         'memberSchema' => $memberSchema,
         'mysqlColumnType' => $mysqlColumnType,
-        'slimsSchemaColumnType' => $slimsSchemaColumnType
+        'slimsSchemaColumnType' => $slimsSchemaColumnType,
+        'newTable' => $newTable,
+        'structure' => $_POST['column'],
+        'hadCustomTable' => $hadCustomTable
     ]);
 
     $createBase = Schema::create($newTable, function($table) use($memberSchema,$mysqlColumnType,$slimsSchemaColumnType) {

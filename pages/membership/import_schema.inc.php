@@ -13,7 +13,7 @@ $form->table_content_attr = 'class="alterCell2"';
 
 $form->addAnything('File Skema', <<<HTML
 <input type="file" name="schema"/>
-<input type="hidden" name="import_raw_json"/>
+<input type="hidden" name="import[raw_json]"/>
 <input type="hidden" name="action" value="import_schema"/>
 HTML);
 
@@ -26,7 +26,7 @@ echo <<<HTML
         const reader = new FileReader()
         reader.onload = function() {
             const contents = reader.result
-            document.querySelector('input[name="import_raw_json"]').value = contents
+            document.querySelector('input[name="import[raw_json]"]').value = contents
         }
 
         reader.readAsText(file);
