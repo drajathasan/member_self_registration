@@ -117,7 +117,7 @@ if (isset($_POST['saveData']) AND $can_read AND $can_write) {
             return $item;
           }, $_POST['advfield']));
           
-          foreach ($_SESSION['advfield'] as $column) {
+          foreach ($_SESSION['advfield']??[] as $column) {
             if (!isset($custom_data[$column])) {
               $custom_data[$column] = '';
             }
@@ -356,6 +356,7 @@ if (isset($_POST['saveData']) AND $can_read AND $can_write) {
             if (!$sql_op->delete('member', "member_id='$itemID'")) {
                 $error_num++;
             } else {
+                $dbs->query('DELETE FROM `member_custom` WHERE `member_id` = \''.$itemID.'\'');
                 // write log
                 writeLog('staff', $_SESSION['uid'], 'membership', $_SESSION['realname'].' DELETE member data ('.$loan_d[1].') with ID ('.$loan_d[0].')', 'Delete', 'OK');
             }
