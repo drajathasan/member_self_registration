@@ -15,8 +15,6 @@ use SLiMS\Table\Schema;
 
 define('MSLR', __DIR__);
 
-// exit(var_dump(class_exists(Url::class)));
-
 define('MSWB', (string)Url::getSlimsBaseUri('plugins/' . basename(MSLR) . '/'));
 
 // load helper
