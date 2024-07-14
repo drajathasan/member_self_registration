@@ -325,7 +325,7 @@ if (!function_exists('formGenerator'))
             echo $descInfo;
         }
 
-        if ($option?->with_agreement??false) {
+        if (($option?->with_agreement??false) && strpos($actionUrl, 'admin') === false) {
             echo <<<HTML
             <div>
                 <input type="checkbox" id="iAgree"/>
@@ -341,7 +341,7 @@ if (!function_exists('formGenerator'))
 
             // public area
             if (strpos($actionUrl, 'admin') === false) {
-                if (($option?->captcha??false) && $captcha->isSectionActive()) 
+                if (($option?->captcha??false) && $captcha->isSectionActive() && config('captcha', false)) 
                 {
                     echo '<div class="captchaMember my-2">';
                     echo $captcha->getCaptcha();
