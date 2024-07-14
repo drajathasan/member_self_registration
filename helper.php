@@ -1,433 +1,402 @@
 <?php
-/**
- * @author Drajat Hasan
- * @email drajathasan20@gmail.com
- * @create date 2021-05-08 09:15:53
- * @modify date 2022-03-28 14:07:00
- * @desc [description]
- */
+use SLiMS\Url;
+use SLiMS\Captcha\Factory as Captcha;
+use SLiMS\Filesystems\Storage;
 
-use Zein\Storage\Local\Upload;
-
-require __DIR__ . '/vendor/autoload.php';
-
-// Save Register
-function saveRegister()
+if (!function_exists('getActiveSchemaData'))
 {
-    global $dbs, $sysconf;
-
-    // set meta
-    $meta = $sysconf['selfRegistration']??[];
-
-    // Set Table Attribute
-    $table = (isset($meta['separateTable']) && (int)$meta['separateTable'] == 1) ? 'member_online': 'member';
-
-    // load simbio dbop
-    require_once SB.'simbio2'.DS.'simbio_DB'.DS.'simbio_dbop.inc.php';
-
-    if (!\Volnix\CSRF\CSRF::validate($_POST)) {
-        echo '<script type="text/javascript">';
-        echo 'alert("Invalid login form!");';
-        echo 'location.href = \'index.php?p=daftar_online\';';
-        echo '</script>';
-        exit();
-    }
-
-    # <!-- Captcha form processing - start -->
-    if ($sysconf['captcha']['member']['enable']) {
-        if ($sysconf['captcha']['member']['type'] == 'recaptcha') {
-            require_once LIB . $sysconf['captcha']['member']['folder'] . '/' . $sysconf['captcha']['member']['incfile'];
-            $privatekey = $sysconf['captcha']['member']['privatekey'];
-            $resp = recaptcha_check_answer($privatekey,
-                $_SERVER["REMOTE_ADDR"],
-                $_POST["g-recaptcha-response"]);
-
-            if (!$resp->is_valid) {
-                // What happens when the CAPTCHA was entered incorrectly
-                header("location:index.php?p=daftar_online&captchaInvalid=true");
-                die();
-            }
-        } else if ($sysconf['captcha']['member']['type'] == 'others') {
-            # other captchas here
-        }
-    }
-    # <!-- Captcha form processing - end -->
-
-    // set up data
-    $map = [
-            'memberName' => 'member_name', 'memberBirth' => 'birth_date', 
-            'memberInst' => 'inst_name', 'memberSex' => 'gender',
-            'memberAddress' => 'member_address', 'memberPhone' => 'member_phone',
-            'memberEmail' => 'member_email',
-            'memberType' => 'member_type_id',
-           ];
-
-    $data = [];
-    foreach ($map as $key => $column_name) {
-        if (isset($_POST[$key]))
-        {
-            $data[$column_name] = $dbs->escape_string(str_replace(['"'], '', strip_tags($_POST[$key])));
-        }
-    }
-
-    if ((isset($_POST['memberPassword1']) && !empty($_POST['memberPassword1'])) && (isset($_POST['memberPassword2']) && !empty($_POST['memberPassword2'])))
+    function getActiveSchemaData()
     {
-        if ($_POST['memberPassword2'] === $_POST['memberPassword1'])
-        {
-            $data['mpasswd'] = password_hash($_POST['memberPassword1'], PASSWORD_BCRYPT);
-        }
-        else
-        {
-            echo '<script type="text/javascript">';
-            echo 'alert("Password tidak boleh kosong");';
-            echo 'location.href = \'index.php?p=daftar_online\';';
-            echo '</script>';
-            exit();
-        }
+        $state = \SLiMS\DB::getInstance()->query('select * from self_registration_schemas where status = 1');
+
+        return $state->rowCount() ? $state->fetchObject() : null;
     }
-    else
-    {
-        echo '<script type="text/javascript">';
-        echo 'alert("Password tidak boleh kosong");';
-        echo 'location.href = \'index.php?p=daftar_online\';';
-        echo '</script>';
-        exit();
-    }
-
-    // Date time
-    $data['input_date'] = date('Y-m-d');
-    $data['last_update'] = date('Y-m-d');
-
-
-    if ($table === 'member' && (int)$meta['autoActive'] === 0)
-    {
-        $data['is_pending'] = 1;
-    }
-
-    if ($table === 'member')
-    {
-        $data['member_id'] = substr(md5($data['member_name']), 0,20);
-        $data['expire_date'] = date('Y-m-d', strtotime("+1 year"));
-    }
-
-    // Upload
-    if (isset($meta['withImage']) && (bool)$meta['withImage'] === true)
-    {
-        $Upload = new Upload;
-        $Upload->mahasiswa = SB . 'images/';
-        $newFilename = hash('sha256', md5(date('this'))) . '.jpeg';
-
-        $Upload
-            ->streamFrom('photoprofil')
-            ->limitSize('1MB')
-            ->allowMime(['image/jpeg','image/png'])
-            ->allowExt(['.png','.jpg','.jpeg'])
-            ->storeToMahasiswa('persons')
-            ->as($newFilename);
-
-        if ($Upload->isSuccess())
-        {
-            $data['member_image'] = $newFilename;
-        }
-        else
-        {
-            utility::jsAlert('File tidak berhasil diunggah karena : ' . $Upload->getError());
-        }
-    }
-        
-
-    // do insert
-    // initialise db operation
-    $sql = new simbio_dbop($dbs);
-
-    // setup for insert
-    $insert = $sql->insert($table, $data);
-
-    if ($insert)
-    {
-        echo '<script type="text/javascript">';
-        echo 'alert("Berhasil terdaftar. '.$meta['regisInfo'].'");';
-        echo 'location.href = \'index.php?p=daftar_online\';';
-        echo '</script>';
-        exit();
-    }
-    else
-    {
-        echo '<script type="text/javascript">';
-        echo 'alert("Gagal terdaftar segera hubungi petugas perpustakaan, untuk info selanjutnya. '.$sql->error.'");';
-        echo 'location.href = \'index.php?p=daftar_online\';';
-        echo '</script>';
-        exit();
-    }
-
-    // header("location:index.php?p=daftar_online");
-    exit();
 }
 
-// update register
-function updateRegister()
-{
-    global $dbs, $sysconf;
-
-    if (isset($_POST['updateRecordID']) && isset($_POST['saveDataMember']))
+if (!function_exists('action')) {
+    function action(string $actionName, array $attribute = [])
     {
-        // set meta
-        $meta = $sysconf['selfRegistration'];
+        extract($attribute);
+        $trace = debug_backtrace(limit: 1);
+        $info = pathinfo(array_pop($trace)['file']);
+        
+        if (file_exists($path = $info['dirname'] . DS . 'action' . DS . basename($actionName) . '.php')) {
+            include $path;
+        } else {
+            throw new Exception('Action ' . $actionName . ' is not found!', 404);
+        }
+    }
+}
 
-        // Set Table Attribute
-        $table = (isset($meta['separateTable']) && (int)$meta['separateTable'] == 1) ? 'member_online': 'member';
 
-        // load simbio dbop
-        require_once SB.'simbio2'.DS.'simbio_DB'.DS.'simbio_dbop.inc.php';
+if (!function_exists('pluginUrl'))
+{
+    /**
+     * Generate URL with plugin_container.php?id=<id>&mod=<mod> + custom query
+     *
+     * @param array $data
+     * @param boolean $reset
+     * @return string
+     */
+    function pluginUrl(array $data = [], bool $reset = false): string
+    {
+        // back to base uri
+        if ($reset) return Url::getSelf(fn($self) => $self . '?mod=' . $_GET['mod'] . '&id=' . $_GET['id']);
+        
+        return Url::getSelf(function($self) use($data) {
+            return $self . '?' . http_build_query(array_merge($_GET,$data));
+        });
+    }
+}
 
-        // initialise db operation
-        $sql = new simbio_dbop($dbs);
-        $updateRecId = $dbs->escape_string($_POST['updateRecordID']);
+if (!function_exists('textColor')) {
+    // source : https://www.bitbook.io/php-function-to-calculate-the-best-font-color-for-a-background-color/
+    function textColor($hexCode){
+        $redHex = substr($hexCode,0,2);
+        $greenHex = substr($hexCode,2,2);
+        $blueHex = substr($hexCode,4,2);
+    
+        $r = (hexdec($redHex)) / 255;
+        $g = (hexdec($greenHex)) / 255;
+        $b = (hexdec($blueHex)) / 255;
+    
+        $brightness = (($r * 299) + ($g * 587) + ($b * 114)) / 1000;
+        // human eye sees 60% easier
+        if($brightness > .6){
+            return '000000';
+        }else{
+            return 'ffffff';
+        }
+    }
+}
 
-        if ($table === 'member_online')
+if (!function_exists('formGenerator'))
+{
+    /**
+     * Form generator based on schema
+     *
+     * @param [type] $data
+     * @param array $record
+     * @param string $actionUrl
+     * @param [type] $opac
+     * @return void
+     */
+    function formGenerator($data, $record = [], $actionUrl = '', $opac = null)
+    {
+        $structure = json_decode($data->structure, true);
+        $option = json_decode($data->option??'');
+        $info = json_decode($data->info);
+
+        ob_start();
+
+        // Start form
+        $js = '';
+        $withUpload = '';
+        if (($option?->image??false)) $withUpload = 'enctype="multipart/form-data"';
+
+        echo '<form id="self_member" method="POST" action="' . $actionUrl . '" ' . $withUpload . '>';
+
+        // set error
+        if ($key = flash()->includes('self_regis_error'))
         {
-            // select data
-            $dataQuery = $dbs->query('select * from member_online where id = \''.$updateRecId.'\'');
+            flash()->danger($key);
+        }
 
-            $memberId = $dbs->escape_string($_POST['memberID']);
-            $dataResult = ($dataQuery->num_rows > 0) ? $dataQuery->fetch_assoc() : [];
+        // set action url
+        if ($actionUrl === '' || stripos($actionUrl, 'admin') !== false) {
+            if ($actionUrl === '') {
+                echo '<h3>Pratinjau</h3>';
+                echo '<h5>Skema ' . $data->name . '</h5>';
+            } else {
+                echo '<h3>Pratinjau Data</h3>';
+                echo '<h5>Calon anggota ' . $record['member_name'] . '</h5>';
+            }
+        } else {
+            if ($opac !== null) $opac->page_title = $info->title;
+            $descInfo = '<div class="alert alert-info p-3">' . strip_tags($info->desc, '<p><a><i><em><h1><h2><h3><ul><ol><li>') . '</div>';
+        }
 
-            // check status
-            if ((int)$meta['editableData'] === 0 && count($dataResult) > 0)
-            {
-                // unset id
-                unset($dataResult['id']);
-                // merge data
-                $dataOnline = array_merge(['member_id' => $memberId, 'expire_date' => date('Y-m-d', strtotime("+1 year"))], $dataResult);
-                // prepare to insert
-                $insert = $sql->insert('member', $dataOnline);
+        if ($info->position == 'top' && isset($descInfo)) {
+            echo $descInfo;
+        }
 
-                if ($insert)
-                {
-                    $sql->delete('member_online', "id='$updateRecId'");
-                    utility::jsToastr('Self Register Form', 'Berhasil menyimpan data', 'success');
-                    echo '<script>parent.$("#mainContent").simbioAJAX("'.MWB.'membership/index.php")</script>';
-                    exit;
-                }
-                else
-                {
-                    utility::jsAlert($sql->error);
-                    utility::jsToastr('Self Register Form', 'Gagal menyimpan data 1', 'error');
-                    exit;
+        // Generate form structure
+        foreach ($structure as $key => $column) {
+            // Convert key to fieldname
+            if (strpos($actionUrl, 'admin') == true) { 
+                if (empty($column['advfield'])) {
+                    $key = $column['field'];
+                } else {
+                    $advfield = explode(',', $column['advfield']);
+                    $key = $advfield[0];
                 }
             }
-            else
-            {
-                // set up data
-                $map = [
-                        'memberName' => 'member_name', 'memberBirth' => 'birth_date', 
-                        'memberInst' => 'inst_name', 'memberSex' => 'gender',
-                        'memberAddress' => 'member_address', 'memberPhone' => 'member_phone',
-                        'memberEmail' => 'member_email'
-                    ];
 
-                $data = [];
-                foreach ($map as $key => $column_name) {
-                    if (isset($_POST[$key]))
-                    {
-                        $data[$column_name] = str_replace(['"'], '', strip_tags($_POST[$key]));
+            // determine mandatory of the element
+            $is_required = $column['is_required'] === true ? ' required' : '';
+
+            // Set label element
+            $required_mark = $is_required ? '<em class="text-danger">*</em>' : '';
+            echo <<<HTML
+            <div class="my-3">
+                <label class="form-label"><strong>{$column['name']} {$required_mark}</strong></label>
+            HTML;
+
+            // Get default value
+            $defaultValue = $record[$column['field']]??$record[$column['advfield']]??'';
+
+            // special condition of some field type
+            if (in_array($column['advfieldtype'], ['enum','enum_radio','text_multiple'])) {
+                list($name, $detail) = explode(',', $column['advfield']);
+                $defaultValue = $record[$name]??'';
+            }
+    
+            // set html form element based on database field
+            switch ($column['field']) {
+                case 'mpasswd':
+                    if ($actionUrl !== '') {
+                        $is_required = '';
                     }
-                }
+                    echo <<<HTML
+                    <br>
+                    <small>tulis dibawah berikut</small>
+                    <input type="password" placeholder="masukan {$column['name']} anda" name="form[{$key}]" id="pass1" class="form-control" {$is_required}>
+                    <small>konfirmasi ulang password anda</small>
+                    <input type="password" name="confirm_password" placeholder="masukan ulang {$column['name']} anda" id="pass2" class="form-control" {$is_required}>
+                    HTML;
+                    break;
+
+                case 'gender':
+                    $man = $defaultValue != 1 ?:'selected';
+                    $woman = $defaultValue != 0 ?:'selected';
+                    echo <<<HTML
+                    <select name="form[{$key}]" class="form-control" {$is_required}>
+                        <option>Pilih</option>
+                        <option value="1" {$man}>Laki-Laki</option>
+                        <option value="0" {$woman}>Perempuan</option>
+                    </select>
+                    HTML;
+                    break;
+
+                case 'member_address':
+                    echo <<<HTML
+                    <textarea name="form[{$key}]" placeholder="masukan {$column['name']} anda" class="form-control" {$is_required}>{$defaultValue}</textarea>
+                    HTML;
+                    break;
+
+                case 'member_type_id':
+                    $memberType = \SLiMS\DB::getInstance()->query('select member_type_id, member_type_name from mst_member_type');
+                    echo '<select class="form-control" name="form[' . $key . ']" ' . $is_required . '>';
+                    echo '<option value="0">Pilih</option>';
+                    while ($result = $memberType->fetch(PDO::FETCH_NUM)) {
+                        echo '<option value="' . $result[0] . '" ' . ($defaultValue != $result[0] ?:'selected') . '>' . $result[1] . '</option>';
+                    }
+                    echo '</select>';
+                    break;
                 
-                if (isset($meta['withImage']) && (bool)$meta['withImage'] === true)
+                // Advance field element
+                case 'advance':
+                    switch ($column['advfieldtype']) {
+
+                        // short text field
+                        case 'varchar':
+                        case 'int':
+                            $types = ['varchar' => 'text', 'int' => 'number'];
+                            $type = $types[$column['advfieldtype']];
+                            echo <<<HTML
+                            <input type="{$type}" name="form[{$key}]" value="{$defaultValue}" placeholder="masukan {$column['name']} anda" class="form-control" {$is_required}/>
+                            HTML;
+                            break;
+
+                        // long text
+                        case 'text':
+                            echo <<<HTML
+                            <textarea name="form[{$key}]" placeholder="masukan {$column['name']} anda" class="form-control" {$is_required}>{$defaultValue}</textarea>
+                            HTML;
+                            break;
+                        
+                        // select list
+                        case 'enum':
+                            list($field,$list) = explode(',', $column['advfield']);
+                            echo '<select name="form[' . $key . ']" class="form-control" '.$defaultValue.'>';
+                            echo '<option value="">Pilih</option>';
+                            $selected = '';
+                            foreach (explode('|', $list) as $item) {
+                                if ($defaultValue == $item) $selected = 'selected';
+                                echo '<option value="'.$item.'" '.$selected.'>' . $item . '</option>';
+                                $selected = '';
+                            }
+                            echo '</select>';
+                            break;
+
+                        // Select list as radio button
+                        case 'enum_radio':
+                            $field = explode(',', $column['advfield']);
+                            $uniqueId = md5($field[0]);
+                            $checked = '';
+
+                            if ($is_required) {
+                                $js .= <<<HTML
+                                if ($('.radio{$uniqueId}:checked').length < 1) {
+                                    evt.preventDefault();
+                                    alert('Pilih salah satu dari isian {$column['name']}');
+                                    return;
+                                }
+                                HTML;
+                            }
+
+                            echo '<div class="d-flex flex-column">';
+                            foreach (explode('|', trim($field[1])) as $optionKey => $value) {
+                                if (empty($value)) continue;
+                                if ($defaultValue == $value) $checked = 'checked';
+                                echo '<div>
+                                    <input class="radio'.$uniqueId.'" id="radio' . $uniqueId . '-' . $optionKey . '" data-title="' . $column['name'] . '" type="radio" name="form[' . $key . ']" value="' . $value . '" ' . $checked . '/>
+                                    <label for="radio' . $uniqueId . '-' . $optionKey . '" style="cursor: pointer">' . $value . '</label>
+                                </div>';
+                            }
+                            echo '</div>';
+                            break;
+
+                        // multiple choise data
+                        case 'text_multiple':
+                            $field = explode(',', $column['advfield']);
+                            $uniqueId = md5($field[0]);
+                            $defaultValue = json_decode(trim($defaultValue), true);
+                            $checked = '';
+
+                            if ($is_required) {
+                                $js .= <<<HTML
+                                if ($('.checkbox{$uniqueId}:checked').length < 1) {
+                                    evt.preventDefault();
+                                    alert('Pilih salah satu dari isian {$column['name']}');
+                                    return;
+                                }
+                                HTML;
+                            }
+
+                            echo '<div class="d-flex flex-column">';
+                            foreach (explode('|', trim($field[1])) as $optionKey => $value) {
+                                if (empty($value)) continue;
+                                if (in_array($value, $defaultValue??[])) $checked = 'checked';
+                                echo '<div class="mx-3">
+                                    <input class="checkbox'.$uniqueId.'" id="checkbox' . $uniqueId . '-' . $optionKey . '" type="checkbox" name="form[' . $key . '][]" value="' . $value . '" ' . $checked . '/>
+                                    <label for="checkbox' . $uniqueId . '-' . $optionKey . '" style="cursor: pointer">' . $value . '</label>
+                                </div>';
+                                $checked = '';
+                            }
+                            echo '</div>';
+                            break;
+                    }
+                    break;
+
+                //  image cover
+                case 'member_image':
+                    if (($option?->image??null) === null) {
+                        echo '<div class="alert alert-info font-weight-bold">Anda belum mengantur ruas ini pada "Pengaturan Form"</div>';
+                    } else {
+                        if (!isset($record['member_image'])) {
+                            echo <<<HTML
+                            <input type="file" name="member_image" placeholder="masukan {$column['name']} anda" class="form-control d-block" {$is_required}/>
+                            <small>Maksimal ukuran file foto adalah 2MB</small>
+                            HTML;
+                        } else {
+                            $image = Storage::images()->isExists('persons/' . $record['member_image']) ? $record['member_image'] : 'avatar.jpg';
+                            echo '<img class="d-block"src="' . SWB . 'lib/minigalnano/createthumb.php?filename=images/persons/' . $image . '&width=120"/>';
+                        }
+                    }
+                    break;
+
+                // lets generate as inptu type text or date or email
+                default:
+                    $types = ['birth_date' => 'date', 'member_email' => 'email'];
+                    $type = isset($types[$column['field']]) ? $types[$column['field']] : 'text';
+                    echo <<<HTML
+                    <input type="{$type}" name="form[{$key}]" value="{$defaultValue}" placeholder="masukan {$column['name']} anda" class="form-control" {$is_required}/>
+                    HTML;
+                    break;
+            }
+
+            echo <<<HTML
+            </div>
+            HTML;
+        }
+
+        if ($info->position == 'bottom' && isset($descInfo)) {
+            echo $descInfo;
+        }
+
+        if (($option?->with_agreement??false) && strpos($actionUrl, 'admin') === false) {
+            echo <<<HTML
+            <div>
+                <input type="checkbox" id="iAgree"/>
+                <label for="iAgree" style="cursor: pointer">Saya menyetujui prasyarat diatas</label>
+            </div>
+            HTML;    
+        }
+
+        // set form action url
+        if ($actionUrl !== '') {
+            // Captcha initialize
+            $captcha = Captcha::section('memberarea');
+
+            // public area
+            if (strpos($actionUrl, 'admin') === false) {
+                if (($option?->captcha??false) && $captcha->isSectionActive() && config('captcha', false)) 
                 {
-                    $data['member_image'] = $dataResult['member_image'];
+                    echo '<div class="captchaMember my-2">';
+                    echo $captcha->getCaptcha();
+                    echo '</div>';
                 }
-
-                $data['member_id'] = $memberId;
-                $data['mpasswd'] = (isset($dataResult['mpasswd'])) ? $dataResult['mpasswd'] : 'Tidak Ada Password';
-                $data['input_date'] = (isset($dataResult['input_date'])) ? $dataResult['input_date'] : date('Y-m-d');
-                $data['last_update'] = date('Y-m-d');
-                $data['expire_date'] = date('Y-m-d', strtotime("+1 year"));
-
-                $insert = $sql->insert('member', $data);
-
-                if ($insert)
-                {
-                    $sql->delete('member_online', "id='$updateRecId'");
-                    utility::jsToastr('Self Register Form', 'Berhasil menyimpan data', 'success');
-                    echo '<script>parent.$("#mainContent").simbioAJAX("'.MWB.'membership/index.php")</script>';
-                    exit;
-                }
-                else
-                {
-                    utility::jsToastr('Self Register Form', 'Gagal menyimpan data 2', 'error');
-                    exit;
-                }
-            }
-        }
-        else
-        {
-            $update = $sql->update('member', ['member_id' => $updateRecId, 'isPending' => (int)$_POST['isPending']], "member_id = '$updateRecId'");
-
-            if ($update)
-            {
-                utility::jsToastr('Self Register Form', 'Berhasil menyimpan data', 'success');
-                echo '<script>parent.$("#mainContent").simbioAJAX("'.MWB.'membership/index.php")</script>';
-                exit;
-            }
-            else
-            {
-                utility::jsToastr('Self Register Form', 'Gagal menyimpan data 3', 'error');
-                exit;
-            }
-        }
-        exit;
-    }
-}
-
-// save Setting
-function saveSetting($self)
-{
-    global $dbs;
-
-    // load simbio dbop
-    require_once SB.'simbio2'.DS.'simbio_DB'.DS.'simbio_dbop.inc.php';
-
-    // action
-    if (isset($_POST['saveData']))
-    {
-        // save into serialize data
-        $allowData = ['selfRegistrationActive','title','autoActive','separateTable','useRecaptcha','regisInfo','editableData','withImage'];
-
-        // loop for filter
-        foreach ($_POST as $key => $value) {
-            if (in_array($key, $allowData))
-            {
-                $_POST[$key] = $dbs->escape_string($value);
-            }
-            else
-            {
-                unset($_POST[$key]);
-            }
-        }
-
-        // copy template
-        // copyTemplate($_POST);
-        
-        // serialize data
-        $data = serialize($_POST);
-
-        // initialise db operation
-        $sql = new simbio_dbop($dbs);
-
-        // Delete data
-        $sql->delete('setting', 'setting_name = "selfRegistration"');
-
-        // setup for insert
-        $insert = $sql->insert('setting', ['setting_name' => 'selfRegistration', 'setting_value' => $data]);
-
-        if ($insert)
-        {
-            // if ((int)$_POST['separateTable'] === 1 )
-            // {
-            //     createTable();
-            // }
-
-            // set alert
-            utility::jsToastr('Self Register Form', 'Berhasil menyimpan data', 'success');
-            echo '<script>parent.$("#mainContent").simbioAJAX("'.$self.'")</script>';
-        }
-        else
-        {
-            utility::jsToastr('Self Register Form', 'Gagal menyimpan data '.$sql->error, 'error');
-        }
-        exit;
-    }
-} 
-
-// delete item
-function deleteItem($self)
-{
-    global $dbs,$meta;
-
-    if ((isset($_POST['itemID']) AND !empty($_POST['itemID']) AND isset($_POST['itemAction'])))
-    {
-        // Set Table Attribute
-        $table = (isset($meta['separateTable']) && (int)$meta['separateTable'] == 1) ? ['member_online', "id = '{id}'"] : ['member', "member_id = '{id}'"];
-
-        // load simbio dbop
-        require_once SB.'simbio2'.DS.'simbio_DB'.DS.'simbio_dbop.inc.php';
-
-        // process delete
-        // initialise db operation
-        $sql = new simbio_dbop($dbs);
-        
-        $fail = 0;
-        foreach ($_POST['itemID'] as $itemID) {
-            $delete = $sql->delete($table[0], str_replace('{id}', $dbs->escape_string($itemID), $table[1]));
-
-            if (!$delete)
-            {
-                $fail++;
-            }
-        }
-        
-
-        if (!$fail)
-        {
-            utility::jsToastr('Register Member Online', 'Berhail menghapus data.', 'success');
-            echo '<script>parent.$("#mainContent").simbioAJAX("'.$self.'")</script>';
-        }
-        else
-        {
-            utility::jsToastr('Register Member Online', 'Gagal menghapus data', 'error');
-        }
-        exit;
-    }
-}
-
-// copy template
-function copyTemplate($data)
-{
-    if ((int)$data['selfRegistrationActive'] === 1 && !file_exists(SB.'lib'.DS.'contents'.DS.'daftar_online.inc.php'))
-    {
-        copy(__DIR__.DS.'daftar_online.inc.php', SB.'lib'.DS.'contents'.DS.'daftar_online.inc.php');
-    }
-}
-
-// Creating Table
-function createTable()
-{
-    global $dbs;
-
-    // setup query
-    @$dbs->query("CREATE TABLE IF NOT EXISTS `member_online` (
-        `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        `member_name` varchar(100) COLLATE utf8mb4_bin DEFAULT NULL,
-        `birth_date` date DEFAULT NULL,
-        `inst_name` varchar(100) COLLATE utf8mb4_bin DEFAULT NULL,
-        `gender` int(1) NOT NULL,
-        `member_address` varchar(255) COLLATE utf8mb4_bin DEFAULT NULL,
-        `member_phone` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL,
-        `member_email` varchar(100) COLLATE utf8mb4_bin DEFAULT NULL,
-        `mpasswd` varchar(64) COLLATE utf8mb4_bin DEFAULT NULL,
-        `input_date` date DEFAULT NULL,
-        `last_update` date DEFAULT NULL
-      ) ENGINE='MyISAM';");
     
-}
+                echo \Volnix\CSRF\CSRF::getHiddenInputString();
 
-// compose Url
-function getCurrentUrl($query = [])
-{
-    
-    return $_SERVER['PHP_SELF'] . '?' . http_build_query(array_merge(['mod' => $_GET['mod'], 'id' => $_GET['id']], $query));
-}
+                $disableBeforeAgree = '';
+                if ($option?->with_agreement??false) $disableBeforeAgree = 'disabled';
 
-// premission check
-function dirCheckPermission()
-{
-    $msg = '';
-    if (!is_writable(SB.'lib'.DS.'contents'.DS))
-    {
-        $msg = 'Direktori : <b>'.SB.'lib'.DS.'contents'.DS.'</b> tidak dapat ditulis!. Harap merubah permission pada folder tersebut.';
+                echo '<div class="form-group">
+                    <input type="hidden" name="action" value="save"/>
+                    <button class="btn btn-primary" type="submit" name="save" '.$disableBeforeAgree.' ' . (empty($disableBeforeAgree) ? '' : 'title="Klik \'Saya menyetujui prasyarat diatas\'"') . '>Daftar</button>
+                    <button class="btn btn-outline-secondary" type="reset" name="save">Batal</button>
+                </div>
+                ';
+            } else {
+                echo '<div class="form-group">
+                    <input type="hidden" name="action" value="acc"/>
+                    <button class="btn btn-success" type="submit" name="acc">Setujui</button>
+                    <a class="btn btn-danger" href="' .  pluginUrl(['section' => 'view_detail', 'member_id' => $_GET['member_id']??0, 'headless' => 'yes', 'action' => 'delete_reg']) . '">Hapus</a>
+                </div>';
+            }
+            echo '<strong><em class="text-danger">*</em> ) wajib diisi</strong>';
+        }
+        echo '</form>';
+
+        // Custom JS
+        if (!empty($js) && strpos($actionUrl, 'admin') === false) {
+            $agreeJs = '';
+            if ($option?->with_agreement??false) {
+                $agreeJs = <<<HTML
+                $('#iAgree').click(function() {
+                    if ($('#iAgree:checked').length < 1) { 
+                        $('button[name="save"]').prop('disabled', true)
+                        $('button[name="save"]').prop('title', 'Klik \'Saya menyetujui prasyarat diatas\'')
+                    } else {
+                        $('button[name="save"]').prop('title', 'Klik untuk menyimpan data')
+                        $('button[name="save"]').prop('disabled', false)
+                    }
+                });
+                HTML;
+            }
+            echo <<<HTML
+            <script>
+                $(document).ready(function() {
+                    {$agreeJs}
+                    $('#self_member').submit(function(evt) {
+                        {$js}
+                    })
+                })
+            </script>
+            HTML;
+        }
+        return ob_get_clean();
     }
-
-    return $msg;
 }
