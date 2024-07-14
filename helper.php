@@ -1,4 +1,5 @@
 <?php
+use SLiMS\Url;
 use SLiMS\Captcha\Factory as Captcha;
 use SLiMS\Filesystems\Storage;
 
