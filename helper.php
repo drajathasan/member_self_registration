@@ -324,7 +324,7 @@ if (!function_exists('formGenerator'))
             echo $descInfo;
         }
 
-        if ($option?->with_agreement??false) {
+        if (($option?->with_agreement??false) && strpos($actionUrl, 'admin') === false) {
             echo <<<HTML
             <div>
                 <input type="checkbox" id="iAgree"/>
@@ -365,12 +365,14 @@ if (!function_exists('formGenerator'))
                     <a class="btn btn-danger" href="' .  pluginUrl(['section' => 'view_detail', 'member_id' => $_GET['member_id']??0, 'headless' => 'yes', 'action' => 'delete_reg']) . '">Hapus</a>
                 </div>';
             }
-            echo '<strong><em class="text-danger">*</em> ) wajib diisi</strong>';
+            if (strpos($actionUrl, 'admin') === false) {
+                echo '<strong><em class="text-danger">*</em> ) wajib diisi</strong>';
+            }
         }
         echo '</form>';
 
         // Custom JS
-        if (!empty($js) && strpos($actionUrl, 'admin') === false) {
+        if (strpos($actionUrl, 'admin') === false) {
             $agreeJs = '';
             if ($option?->with_agreement??false) {
                 $agreeJs = <<<HTML
