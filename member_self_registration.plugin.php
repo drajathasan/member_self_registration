@@ -14,6 +14,7 @@ use SLiMS\Url;
 use SLiMS\Table\Schema;
 
 define('MSLR', __DIR__);
+
 define('MSWB', (string)Url::getSlimsBaseUri('plugins/' . basename(MSLR) . '/'));
 
 // load helper

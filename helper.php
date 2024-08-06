@@ -1,4 +1,5 @@
 <?php
+use SLiMS\Url;
 use SLiMS\Captcha\Factory as Captcha;
 use SLiMS\Filesystems\Storage;
 
@@ -340,7 +341,7 @@ if (!function_exists('formGenerator'))
 
             // public area
             if (strpos($actionUrl, 'admin') === false) {
-                if (($option?->captcha??false) && $captcha->isSectionActive()) 
+                if (($option?->captcha??false) && $captcha->isSectionActive() && config('captcha', false)) 
                 {
                     echo '<div class="captchaMember my-2">';
                     echo $captcha->getCaptcha();
