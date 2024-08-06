@@ -32,7 +32,7 @@ if (isset($_POST['form'])) {
             $message = isDev() ? $captcha->getError() : __('Wrong Captcha Code entered, Please write the right code!'); 
             // What happens when the CAPTCHA was entered incorrectly
             session_unset();
-            throw new Exception($message);
+            //throw new Exception($message);
         }
         # <!-- Captcha form processing - end -->
 
@@ -92,9 +92,6 @@ if (isset($_POST['form'])) {
 
                     // destroy it if failed
                     if (!empty($images->getError())) $images->destroyIfFailed();
-
-                    // remove exif data
-                    if (empty($images->getError())) $images->cleanExifInfo();
 
                 })->as('persons' . DS . $newFilename);
 

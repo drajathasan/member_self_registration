@@ -16,6 +16,7 @@ if (!function_exists('getActiveSchemaData'))
 if (!function_exists('action')) {
     function action(string $actionName, array $attribute = [])
     {
+        global $sysconf;
         extract($attribute);
         $trace = debug_backtrace(limit: 1);
         $info = pathinfo(array_pop($trace)['file']);
